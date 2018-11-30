@@ -6,14 +6,11 @@ static DAYRUNS: [(&str, fn(&str));1] = [
     ("day99", day99::run)
 ];
 
-
-//use std::collections::HashMap;
-//let mut dayruns = HashMap::new();
+// TODO: use &'static str for name
 pub struct Day {
     pub name: String,
     pub runner: fn(& str),
 }
-
 
 //    Day {name: "day99", runner: day99::run},
 pub fn days() -> HashMap<String,Day> {

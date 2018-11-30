@@ -1,16 +1,27 @@
-extern crate aoc2018;
-use aoc2018::day99;
-// use aoc2018::utils::Response;
+use std::env;
+use std::fs;
 
+extern crate aoc2018;
 
 fn main() {
-    // let mut t: Vec<Response> = Vec::new();
+    let args: Vec<String> = env::args().collect();
 
-    let data = include_str!("../inputs/day99.txt").trim_right();
-    day99::run(&data);
+    if args.len() <2 {
+        println!("Error: Specify day number");
+        return 
+    }
+
+    let day_name = &args[1];
 
 
     let days = aoc2018::days();
-    let dd = days.get("day99").unwrap();
-    (dd.runner)(data);
+
+    let dd = days.get(day_name).expect("Unknown day name");
+    let dayfile = format!("inputs/{}.txt", day_name);
+    println!("Attempting to read: {}", dayfile);
+    let data = fs::read_to_string(dayfile)
+        .expect("Error reading file");
+
+    println!("Running advent of code for day {}", day_name);
+    (dd.runner)(&data);
 }
