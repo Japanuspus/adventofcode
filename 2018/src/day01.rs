@@ -28,10 +28,9 @@ pub fn part2_01(d: &str) -> i64 {
         .map(|a| a.parse::<i64>().unwrap())
         .cycle()
         .map(|a| {s=s+a; s})
-        .skip_while(|s| fs.insert(*s))
-        .next().unwrap()
+        .find(|s| !fs.insert(*s))
+        .unwrap()
 }
-
 
 pub fn run(data: &str) {
     println!("{}", part1_01(&data));
