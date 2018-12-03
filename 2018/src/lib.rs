@@ -3,9 +3,11 @@ use std::collections::HashMap;
 pub mod utils;
 pub mod day99;
 pub mod day01;
-static DAYRUNS: [(&str, fn(&str));2] = [
+pub mod day02;
+static DAYRUNS: [(&str, fn(&str));3] = [
     ("day99", day99::run),
     ("day01", day01::run),
+    ("day02", day02::run),
 ];
 
 // TODO: use &'static str for name
