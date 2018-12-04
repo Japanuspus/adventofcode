@@ -1,13 +1,20 @@
+#[macro_use]
+extern crate nom;
+
 use std::collections::HashMap;
 
 pub mod utils;
 pub mod day99;
 pub mod day01;
 pub mod day02;
-static DAYRUNS: [(&str, fn(&str));3] = [
+pub mod day03;
+pub mod day04;
+static DAYRUNS: [(&str, fn(&str));5] = [
     ("day99", day99::run),
     ("day01", day01::run),
     ("day02", day02::run),
+    ("day03", day03::run),
+    ("day04", day04::run),
 ];
 
 // TODO: use &'static str for name
