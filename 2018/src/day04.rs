@@ -1,4 +1,9 @@
+use std::collections::HashMap;
 //use nom::IResult;
+//use nom::Err;
+// nom IResult has been siginificantly changed for 4.1
+// http://unhandledexpression.com/general/2018/05/14/nom-4-0-faster-safer-simpler-parsers.html
+// pub type IResult<I, O, E = u32> = Result<(I, O), Err<I, E>>;
 //use std::str::from_utf8;
 
 #[cfg(test)]
@@ -93,18 +98,47 @@ pub struct Period {
   pub period: (u8, u8),
 }
 
-pub fn part1_01(d: &str) -> i64{
+pub fn parse_periods(d: &str) -> Vec<Period> {
     let mut lsorted: Vec<_> = d.lines().collect();
     lsorted.sort();
+    let loglines: Vec<_> = lsorted.iter().map(|l| parse_logline(l).unwrap().1).collect();
 
-    let mut guard_periods: HashMap<u32, Period> = HashMap::new();
-    let mut gid: u32 = 0;
-    let mut t0: u8 =0;
-
-
-    for l in lsorted {
-      println!("> {}", l);
+    let mut guard: u32 =0;
+    let mut r: &[LogLine] = &loglines;
+    let mut periods: Vec<Period> = Vec::new();
+    while r.len()>0 {
+        match r[0].ltype {
+            LogTypes::Guard(g) => {
+                guard = g; 
+                r=&r[1..];
+            },
+            _ => {
+                periods.push(Period {guard, period: (r[0].ltime, r[1].ltime)});
+                r=&r[2..];
+            }
+        } 
     }
+    periods
+}
+
+pub fn part1_01(d: &str) -> i64{
+    let periods = parse_periods(d);
+
+    // collect all sleep periods for a given guard
+    let mut by_guard: HashMap<u32, Vec<(u8, u8)>> = HashMap::new();
+    for p in periods {
+        let entry = by_guard.entry(p.guard).or_insert(Vec::new());
+        (*entry).push(p.period);
+    };
+    println!("{:?}", by_guard);
+
+    // find most sleeping guard
+    let guard:&u32 = by_guard
+    .iter()
+    .map(|(g, ps)| (g, ps.iter().map(|p| (p.1-p.0) as u32).sum()))
+    .max_by_key(|(_, total_sleep)| total_sleep).unwrap().0;
+
+    println!("{:?}", guard);
 
     0
 }
