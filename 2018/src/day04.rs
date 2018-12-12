@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 use std::collections::BTreeMap;
+use std::collections::BTreeSet;
+use std::Iterator::Iter;
 //use nom::IResult;
 //use nom::Err;
 // nom IResult has been siginificantly changed for 4.1
@@ -137,45 +139,47 @@ pub fn parse_periods(d: &str) -> Vec<Period> {
     periods
 }
 
-// only return None if both are None
-use std::cmp;
-fn better_min<T: Ord>(v1: Option<T>, v2: Option<T>) -> Option<T> {
-    match (v1, v2) {
-        (Some(t0), Some(t1)) => Some(cmp::min(t0, t1)),
-        (Some(t0), None) => Some(t0),
-        (None, Some(t1)) => Some(t1),
-        _ => None
-    }
+// Interval iterator: return (t, <active intervals indices>) at interesting values of t
+#[derive(Debug)]
+pub enum EdgeType 
+    Edge0,
+    Edge1,
+};
+
+#[derive(Debug, Ord)]
+pub struct IntervalEdge<T> 
+    where t:Ord 
+{
+    time: T,
+    type: EdgeType,
+    index: usize,
 }
 
-#[test]
-fn test_bettermin() {
-    assert_eq!(better_min(Some(3), Some(2)), Some(2));
-    assert_eq!(better_min(Some(2), Some(3)), Some(2));
-    assert_eq!(better_min(Some(3), None), Some(3));
-    assert_eq!(better_min(None, Some(2)), Some(2));
-    assert_eq!(better_min(None, None), None);
 
-}
-
-// Interval iterator: return (i, <active intervals>) at interesting values of i
 #[derive(Debug)]
 pub struct IntervalSet<T> 
     where T:Ord {
-    intervals: Vec<(T, T)>,  //all intervals, ordered by t1
-    active: BTreeMap<T, Vec<usize>>, //maps end time to indices intervals ending at that point
-    nextactive: Option<usize>,             //index of next interval to become active
+    edges: Vec<IntervalEdge>, //edges of intervals sorted by time then type
+    // below is iterator state -- could be moved to an IntervalSetIterator class...
+    active: BTreeSet<usize>, // indices of active intervals
+    edge_iterator: Peekable<IntervalEdge>, 
 }
 
 
 impl<T: Ord+Clone> IntervalSet<T> {
     fn new(v: &[(T, T)]) -> IntervalSet<T> {
-        let mut v: Vec<(T,T)> = Vec::from(v);
-        v.sort_by_key(|&(a, _)| a);
+        
+        let mut edges: Vec<IntervalEdge> = Vec::new();
+        edges.extend(v.iter().enumerate().map(|(t0, _)|  ));
+        for index, (t0, t1)  in v.iter().enumerate() {
+            edges.insert(IntervalEdge {time: t0, type: EdgeType::Edge0, index});
+            edges.insert(IntervalEdge {time: t1, type: EdgeType::Edge1, index});
+        }
+        edges.sort();
         IntervalSet {
-            intervals: v, 
-            active: BTreeMap::new(), 
-            nextactive: if v.len()>0 {Some(0)} else {None}
+            edges,
+            active: BTreeSet::new(), 
+            edge_iterator: edges.iter().peekable(),
         }
     }
 }
@@ -183,6 +187,28 @@ impl<T: Ord+Clone> IntervalSet<T> {
 impl<T: Ord> Iterator for IntervalSet<T> {
     type Item = (T, usize);
     fn next(&mut self) -> Option<(T, usize)> {
+        // take all entries with same time entry
+        self.edge_iterator.take_while();
+        self.edge_iterator.peek()
+        .and_then(|ref e| {
+            match e {
+                IntervalEdge {time: t, type: et, index: idx} => {
+
+                }
+            }
+
+        })
+
+        }
+        self.edge_iterator.next()
+        .and_then(|e| {
+            match e {
+                IntervalEdge {time: t, type: et, index: idx} => {
+
+                }
+            }
+        })
+    }
         let anend: Option<T> = self.active.keys().next().and_then(|t| Some(*t));
         let astart: Option<T> = self.nextactive.and_then(|n| Some(self.intervals[n].0));
         let newt = better_min(astart, anend);
