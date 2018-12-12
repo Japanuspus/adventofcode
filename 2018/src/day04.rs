@@ -2,7 +2,6 @@ use std::collections::HashMap;
 //use std::collections::BTreeMap;
 use std::collections::BTreeSet;
 use std::iter::Iterator;
-use std::iter::Peekable;
 
 //use nom::IResult;
 //use nom::Err;
@@ -19,10 +18,6 @@ mod tests {
     fn part1() {
         assert_eq!(part1_01(TT), 0);
     }
-}
-
-pub fn part2_01(_d: &str) -> i64 {
-    0
 }
 
 #[derive(Debug, PartialEq)]
@@ -165,8 +160,9 @@ where
 {
     edges: Box<Vec<IntervalEdge<T>>>, //edges of intervals sorted by time then type
     // below is iterator state -- could be moved to an IntervalSetIterator class...
+    // research into_iterator 
     active: Box<BTreeSet<usize>>, // indices of active intervals
-    edge_iterator: Box<Peekable<Iterator<IntervalEdge<T>>>>,
+    edge_index: usize, //index of next edge
 }
 
 impl<T: Ord + Clone> IntervalSet<T> {
@@ -174,12 +170,12 @@ impl<T: Ord + Clone> IntervalSet<T> {
         let mut edges: Vec<IntervalEdge<T>> = Vec::new();
         for (index, (t0, t1)) in v.iter().enumerate() {
             edges.push(IntervalEdge::<T> {
-                time: *t0,
+                time: t0.clone(),
                 edge_type: EdgeType::Edge0,
                 index,
             });
             edges.push(IntervalEdge::<T> {
-                time: *t1,
+                time: t1.clone(),
                 edge_type: EdgeType::Edge1,
                 index,
             });
@@ -188,54 +184,69 @@ impl<T: Ord + Clone> IntervalSet<T> {
         IntervalSet {
             edges: Box::new(edges),
             active: Box::new(BTreeSet::new()),
-            edge_iterator: Box::new(edges.iter().peekable()),
+            edge_index: 0,
         }
     }
 
     fn step(&mut self) {
-        match self.edge_iterator.next().unwrap() {
-            IntervalEdge::<T> {
+        self.edge_index += match self.edges.get(self.edge_index) {
+            Some(IntervalEdge::<T> {
                 time: _,
                 edge_type: EdgeType::Edge0,
                 index: idx,
-            } => self.active.insert(idx),
-            IntervalEdge::<T> {
+            }) => {(*self.active).insert(*idx); 1},
+            Some(IntervalEdge::<T> {
                 time: _,
                 edge_type: EdgeType::Edge1,
                 index: idx,
-            } => self.active.remove(&idx),
+            }) => {(*self.active).remove(&idx); 1},
+            None => 0
         };
     }
 
     pub fn peek_t(&self) -> Option<T> {
-        self.edge_iterator.peek().and_then(|ee| ee.time)
+        self.edges.get(self.edge_index).and_then(|ee| Some(ee.time.clone()))
     }
 }
 
-impl<T: Ord> Iterator for IntervalSet<T> {
+impl<T: Ord+Clone> Iterator for IntervalSet<T> {
     type Item = (T, usize);
     fn next(&mut self) -> Option<(T, usize)> {
         // take all entries with same time entry
         self.peek_t().and_then(|t| {
-            while self.peek_t() == Some(t) {
+            while self.peek_t() == Some(t.clone()) {
                 self.step();
-            }
-            Some(t, self.active.len())
+            };
+            Some((t, self.active.len()))
         })
     }
 }
 
 #[test]
 fn test_intervalset() {
-    let intset = IntervalSet::<u8>::new([(3, 4), (1, 5), (2, 6), (2, 4), (8, 12)]);
+    // 0 1 2 3 4 5 6 7 8 9 10 11 12
+    //       < <
+    //   <       <
+    //     <       <
+    //     <   <
+    //                 <         <
+    let mut intset = IntervalSet::<u8>::new(&[(3, 4), (1, 5), (2, 6), (2, 4), (8, 12)]);
     assert_eq!(intset.next(), Some((1, 1)));
+    assert_eq!(intset.next(), Some((2, 3)));
+    assert_eq!(intset.next(), Some((3, 4)));
+    assert_eq!(intset.next(), Some((4, 2)));
+    assert_eq!(intset.next(), Some((5, 1)));
+    assert_eq!(intset.next(), Some((6, 0)));
+    assert_eq!(intset.next(), Some((8, 1)));
+    assert_eq!(intset.next(), Some((12, 0)));
+    assert_eq!(intset.next(), None);
 }
 
 fn interval_sum(ps: &[(u8, u8)]) -> u32 {
     ps.iter().map(|p| (p.1 - p.0) as u32).sum()
 }
 
-pub fn part1_01(d: &str) -> i64 {
+fn get_periods_by_guard(d: &str) -> HashMap<u32, Vec<(u8, u8)>> {
     let periods = parse_periods(d);
 
     // collect all sleep periods for a given guard
@@ -245,6 +256,19 @@ pub fn part1_01(d: &str) -> i64 {
         (*entry).push(p.period);
     }
     //println!("{:?}", by_guard);
+    by_guard
+}
+
+fn sleepy_minute(v: &Vec<(u8,u8)>) -> (Option<u8>, usize) {
+    match IntervalSet::<u8>::new(v).max_by_key(|(_, count)| *count) {
+        Some((m, c)) => (Some(m), c),
+        None => (None, 0),
+    }
+}
+
+
+pub fn part1_01(d: &str) -> i64 {
+    let by_guard = get_periods_by_guard(d);
 
     // find most sleeping guard
     let guard: u32 = *by_guard
@@ -254,11 +278,26 @@ pub fn part1_01(d: &str) -> i64 {
         .unwrap()
         .0;
 
-    println!("Most sleeping guard: {}", guard);
-
+    println!("Most sleeping: {}", guard);
     // find most sleepy minute. Specification: [i1, i2[
+    let minute = sleepy_minute(by_guard.get(&guard).unwrap()).0.unwrap();
+    println!("Drowsiest minute: {}", minute);
 
-    0
+    guard as i64 * minute as i64
+}
+
+pub fn part2_01(d: &str) -> i64 {
+    let by_guard = get_periods_by_guard(d);
+
+    // find guard with most sleepy minute
+    let rr =  by_guard
+        .iter()
+        .map(|(g, ps)| (g, sleepy_minute(ps)))
+        .max_by_key(|(g, (m, ct))| *ct)
+        .unwrap();
+
+    println!("Most sleeping stats: {:?}", rr);
+    *rr.0 as i64 * (rr.1).0.unwrap() as i64
 }
 
 pub fn run(data: &str) {
