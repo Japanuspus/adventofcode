@@ -1,7 +1,9 @@
 use std::collections::HashMap;
-use std::collections::BTreeMap;
+//use std::collections::BTreeMap;
 use std::collections::BTreeSet;
-use std::Iterator::Iter;
+use std::iter::Peekable;
+use std::iter::Iterator;
+
 //use nom::IResult;
 //use nom::Err;
 // nom IResult has been siginificantly changed for 4.1
@@ -140,47 +142,55 @@ pub fn parse_periods(d: &str) -> Vec<Period> {
 }
 
 // Interval iterator: return (t, <active intervals indices>) at interesting values of t
-#[derive(Debug)]
-pub enum EdgeType 
+#[derive(Debug, Ord, PartialOrd, PartialEq, Eq)]
+pub enum EdgeType {
     Edge0,
     Edge1,
-};
-
-#[derive(Debug, Ord)]
-pub struct IntervalEdge<T> 
-    where t:Ord 
-{
-    time: T,
-    type: EdgeType,
-    index: usize,
 }
 
+#[derive(Debug, Ord, PartialOrd, PartialEq, Eq)]
+pub struct IntervalEdge<T> 
+    where T:Ord 
+{
+    time: T,
+    edge_type: EdgeType,
+    index: usize,
+}
 
 #[derive(Debug)]
 pub struct IntervalSet<T> 
     where T:Ord {
-    edges: Vec<IntervalEdge>, //edges of intervals sorted by time then type
+    edges: Box<Vec<IntervalEdge<T>>>, //edges of intervals sorted by time then type
     // below is iterator state -- could be moved to an IntervalSetIterator class...
-    active: BTreeSet<usize>, // indices of active intervals
-    edge_iterator: Peekable<IntervalEdge>, 
+    active: Box<BTreeSet<usize>>, // indices of active intervals
+    edge_iterator: Box<Peekable<Iterator<_', IntervalEdge<T>>>>,
 }
 
 
 impl<T: Ord+Clone> IntervalSet<T> {
-    fn new(v: &[(T, T)]) -> IntervalSet<T> {
-        
-        let mut edges: Vec<IntervalEdge> = Vec::new();
-        edges.extend(v.iter().enumerate().map(|(t0, _)|  ));
-        for index, (t0, t1)  in v.iter().enumerate() {
-            edges.insert(IntervalEdge {time: t0, type: EdgeType::Edge0, index});
-            edges.insert(IntervalEdge {time: t1, type: EdgeType::Edge1, index});
+    fn new(v: &[(T, T)]) -> IntervalSet<T> {        
+        let mut edges: Vec<IntervalEdge<T>> = Vec::new();
+        for (index, (t0, t1)) in v.iter().enumerate() {
+            edges.push(IntervalEdge::<T> {time: *t0, edge_type: EdgeType::Edge0, index});
+            edges.push(IntervalEdge::<T> {time: *t1, edge_type: EdgeType::Edge1, index});
         }
         edges.sort();
         IntervalSet {
-            edges,
-            active: BTreeSet::new(), 
-            edge_iterator: edges.iter().peekable(),
+            edges: Box::new(edges),
+            active: Box::new(BTreeSet::new()), 
+            edge_iterator: Box::new(edges.iter().peekable()),
         }
+    }
+
+    fn step(&mut self) {
+        match self.edge_iterator.next().unwrap() {
+            IntervalEdge::<T> {time: _, edge_type: EdgeType::Edge0, index: idx} => self.active.insert(idx),
+            IntervalEdge::<T> {time: _, edge_type: EdgeType::Edge1, index: idx} => self.active.remove(&idx),
+        };
+    }
+
+    pub fn peek_t(& self) -> Option<T>{
+        self.edge_iterator.peek().and_then(|ee| ee.time)
     }
 }
 
@@ -188,54 +198,21 @@ impl<T: Ord> Iterator for IntervalSet<T> {
     type Item = (T, usize);
     fn next(&mut self) -> Option<(T, usize)> {
         // take all entries with same time entry
-        self.edge_iterator.take_while();
-        self.edge_iterator.peek()
-        .and_then(|ref e| {
-            match e {
-                IntervalEdge {time: t, type: et, index: idx} => {
-
-                }
+        self
+        .peek_t()
+        .and_then(|t| {
+            while self.peek_t() == Some(t) {
+                self.step();
             }
-
+            Some(t, self.active.len())
         })
-
-        }
-        self.edge_iterator.next()
-        .and_then(|e| {
-            match e {
-                IntervalEdge {time: t, type: et, index: idx} => {
-
-                }
-            }
-        })
-    }
-        let anend: Option<T> = self.active.keys().next().and_then(|t| Some(*t));
-        let astart: Option<T> = self.nextactive.and_then(|n| Some(self.intervals[n].0));
-        let newt = better_min(astart, anend);
-        match newt {
-            Some(nt) => {
-                // Maybe add new interval to active
-                // TODO: this could be multiple...
-                if newt==astart {
-                    if let Some(n) = self.nextactive {
-                        let newint = &self.intervals[n];
-                        self.active.entry((*newint).1).or_insert(Vec::new()).push(n);
-                        self.nextactive = if n+1 == self.intervals.len() {None} else {Some(n+1)};
-                    }
-                }
-                // And remove intervals that we have passed by
-                self.active = self.active.iter().take_while(|(&t, _)| t<=nt).collect();                
-                Some((nt, self.active.len()))        
-            },
-            None => None
-        }
     }
 }
 
 #[test]
-fn test_intevalset() {
-    let intset = IntervalSet::<u8>::new([(3,4), (1,5), (2, 6), (8, 12)]);
-
+fn test_intervalset() {
+    let intset = IntervalSet::<u8>::new([(3,4), (1,5), (2, 6), (2, 4), (8, 12)]);
+    assert_eq!(intset.next(), Some((1,1)));
 }
 
 fn interval_sum(ps: &[(u8, u8)]) -> u32 {
