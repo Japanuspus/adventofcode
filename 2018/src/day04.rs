@@ -137,15 +137,6 @@ pub fn parse_periods(d: &str) -> Vec<Period> {
     periods
 }
 
-// Interval iterator: return (i, <active intervals>) at interesting values of i
-#[derive(Debug)]
-pub struct IntervalSet<T> 
-    where T:Ord {
-    intervals: Vec<(T, T)>,  //all intervals, ordered by t1
-    active: BTreeMap<T, Vec<usize>>, //maps end time to indices intervals ending at that point
-    next: Option<usize>,             //index of next interval to become active
-}
-
 // only return None if both are None
 use std::cmp;
 fn better_min<T: Ord>(v1: Option<T>, v2: Option<T>) -> Option<T> {
@@ -157,40 +148,67 @@ fn better_min<T: Ord>(v1: Option<T>, v2: Option<T>) -> Option<T> {
     }
 }
 
-impl<T> IntervalSet<T> {
+#[test]
+fn test_bettermin() {
+    assert_eq!(better_min(Some(3), Some(2)), Some(2));
+    assert_eq!(better_min(Some(2), Some(3)), Some(2));
+    assert_eq!(better_min(Some(3), None), Some(3));
+    assert_eq!(better_min(None, Some(2)), Some(2));
+    assert_eq!(better_min(None, None), None);
+
+}
+
+// Interval iterator: return (i, <active intervals>) at interesting values of i
+#[derive(Debug)]
+pub struct IntervalSet<T> 
+    where T:Ord {
+    intervals: Vec<(T, T)>,  //all intervals, ordered by t1
+    active: BTreeMap<T, Vec<usize>>, //maps end time to indices intervals ending at that point
+    nextactive: Option<usize>,             //index of next interval to become active
+}
+
+
+impl<T: Ord+Clone> IntervalSet<T> {
     fn new(v: &[(T, T)]) -> IntervalSet<T> {
         let mut v: Vec<(T,T)> = Vec::from(v);
         v.sort_by_key(|&(a, _)| a);
         IntervalSet {
             intervals: v, 
             active: BTreeMap::new(), 
-            next: if v {Some(0)} else {None}
+            nextactive: if v.len()>0 {Some(0)} else {None}
         }
     }
 }
 
-impl<T:Ord> Iterator for IntervalSet<T> {
-    fn next(&mut self) -> Option<(T, u32)> {
-        let anend: Option<&T> = self.active.keys().next();
-        let astart: Option<&T> = if let Some(n)=self.next {self.intervals.get(self.next)} else {None};
+impl<T: Ord> Iterator for IntervalSet<T> {
+    type Item = (T, usize);
+    fn next(&mut self) -> Option<(T, usize)> {
+        let anend: Option<T> = self.active.keys().next().and_then(|t| Some(*t));
+        let astart: Option<T> = self.nextactive.and_then(|n| Some(self.intervals[n].0));
         let newt = better_min(astart, anend);
-        if newt.is_some() {
-            if newt==astart {
-                let newint = &self.intervals[self.next];
-                self.active.push((self.intervals[self.next].1, self.next));
-                if let Some(n) = self.next {
-                    self.next = if n+1 == self.intervals.len() {None} else {Some(n+1)};
+        match newt {
+            Some(nt) => {
+                // Maybe add new interval to active
+                // TODO: this could be multiple...
+                if newt==astart {
+                    if let Some(n) = self.nextactive {
+                        let newint = &self.intervals[n];
+                        self.active.entry((*newint).1).or_insert(Vec::new()).push(n);
+                        self.nextactive = if n+1 == self.intervals.len() {None} else {Some(n+1)};
+                    }
                 }
-            }
-            self.active = self.active.iter().take_while(|t, _| t<=newt).collect();
+                // And remove intervals that we have passed by
+                self.active = self.active.iter().take_while(|(&t, _)| t<=nt).collect();                
+                Some((nt, self.active.len()))        
+            },
+            None => None
         }
-        Some((newt, self.active.len()))        
     }
 }
 
 #[test]
 fn test_intevalset() {
-    let intset = IntervalSet<u8>::new([(3,4), (1,5), (2, 6), (8, 12)]);
+    let intset = IntervalSet::<u8>::new([(3,4), (1,5), (2, 6), (8, 12)]);
 
 }
 
