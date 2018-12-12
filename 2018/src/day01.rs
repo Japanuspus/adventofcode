@@ -14,20 +14,19 @@ mod tests {
 }
 
 pub fn part1_01(d: &str) -> i64 {
-    d
-    .lines()
-    .map(|a| a.parse::<i64>().unwrap())
-    .sum()
+    d.lines().map(|a| a.parse::<i64>().unwrap()).sum()
 }
 
 pub fn part2_01(d: &str) -> i64 {
     let mut fs = HashSet::new();
     let mut s: i64 = 0;
-    d
-        .lines()
+    d.lines()
         .map(|a| a.parse::<i64>().unwrap())
         .cycle()
-        .map(|a| {s=s+a; s})
+        .map(|a| {
+            s = s + a;
+            s
+        })
         .find(|s| !fs.insert(*s))
         .unwrap()
 }
