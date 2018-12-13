@@ -7,14 +7,16 @@ pub mod day01;
 pub mod day02;
 pub mod day03;
 pub mod day04;
+pub mod day05;
 pub mod day99;
 pub mod utils;
-static DAYRUNS: [(&str, fn(&str)); 5] = [
+static DAYRUNS: [(&str, fn(&str)); 6] = [
     ("day99", day99::run),
     ("day01", day01::run),
     ("day02", day02::run),
     ("day03", day03::run),
     ("day04", day04::run),
+    ("day05", day05::run),
 ];
 
 // TODO: use &'static str for name

@@ -10,16 +10,6 @@ use std::iter::Iterator;
 // pub type IResult<I, O, E = u32> = Result<(I, O), Err<I, E>>;
 //use std::str::from_utf8;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    const TT: &str = "";
-    #[test]
-    fn part1() {
-        assert_eq!(part1_01(TT), 0);
-    }
-}
-
 #[derive(Debug, PartialEq)]
 pub enum LogTypes {
     Sleep,
@@ -293,7 +283,7 @@ pub fn part2_01(d: &str) -> i64 {
     let rr =  by_guard
         .iter()
         .map(|(g, ps)| (g, sleepy_minute(ps)))
-        .max_by_key(|(g, (m, ct))| *ct)
+        .max_by_key(|(_g, (_m, ct))| *ct)
         .unwrap();
 
     println!("Most sleeping stats: {:?}", rr);
