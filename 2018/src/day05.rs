@@ -7,6 +7,7 @@ mod tests {
         assert_eq!(part1_01(TT),10);
         assert_eq!(part1_02(TT),10);
         assert_eq!(part2_01(TT),4);
+        assert_eq!(part2_02(TT),4);
     }
 }
 
@@ -46,8 +47,7 @@ fn collapse_polymer<'_a, I>(vals: I) -> usize
 where I: IntoIterator<Item = &'_a u8> {
     let mut stack: Vec<u8> = Vec::new();
     for c in vals.into_iter() {
-        let top = stack.pop();
-        match top {
+        match stack.pop() {
             Some(sc) if opposite(*c, sc) => {},
             Some(sc) => {stack.push(sc); stack.push(*c);},        
             None => {stack.push(*c);},
@@ -70,6 +70,14 @@ pub fn part2_01(d: &str) -> i64 {
     .map(|c| collapse_filtered(d.trim().as_bytes(), c))
     .min().unwrap() as i64
 }
+
+pub fn part2_02(d: &str) -> i64 {
+    ('a' as u8 ..'z' as u8)
+    .map(|c| collapse_polymer(
+        d.trim().as_bytes().iter().filter(|&cc| !(c==*cc || opposite(c, *cc))))
+    ).min().unwrap() as i64
+}
+
 
 pub fn run(data: &str) {
     println!("Part 1: {}", part1_01(&data));
