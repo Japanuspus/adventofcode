@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 
-extern crate aoc2018;
+use aoc2018;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
