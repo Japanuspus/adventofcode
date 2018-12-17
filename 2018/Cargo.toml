@@ -6,3 +6,4 @@ edition = "2018"
 
 [dependencies]
 nom="^4.1"
+cgmath = "0.16.1" #Day 14
