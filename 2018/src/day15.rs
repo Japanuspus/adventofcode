@@ -170,7 +170,7 @@ impl FromStr for Board {
 // Maybe position of blank neighbor position
 // Assumes that there are no enemies as neighbors
 // None if no enemies can be reached or if this tile is dead
-fn propose_step(board: &Board, i: usize) -> Option<Pt> {
+fn propose_step_old(board: &Board, i: usize) -> Option<Pt> {
     //if let Tile::Actor(Actor {team, hitpoints: _}) = board.get(&p0) {
     if let Actor{ref team, pos: Some(p0), ..} = board.actors[i] {        
         let mut b = board.clone();
@@ -205,6 +205,64 @@ fn propose_step(board: &Board, i: usize) -> Option<Pt> {
         None
     }
 }
+
+// Maybe position of blank neighbor position
+// Assumes that there are no enemies as neighbors
+// None if no enemies can be reached or if this tile is dead
+fn propose_step(board: &Board, i: usize) -> Option<Pt> {
+    //if let Tile::Actor(Actor {team, hitpoints: _}) = board.get(&p0) {
+    if let Actor{ref team, pos: Some(p0), ..} = board.actors[i] {        
+        let mut b = board.clone();
+        let p1s: Vec<Pt> = pt_neighbors(&p0);
+
+        // Enumerate starting directions to know where to go
+        let mut next_visit: Vec<(usize, Pt)> = p1s.clone().into_iter().enumerate().collect();
+        let mut targets: Vec<(Pt, usize)> = Vec::new();
+        while targets.is_empty() && !next_visit.is_empty(){
+            let visit: Vec<(usize, Pt)> = next_visit.clone();
+            next_visit.clear();
+            for (i, p) in visit {
+                match b.get(&p)  {
+                    Tile::Blank => {
+                        b.mark(&p); 
+                        // Add possible continuations, marked by
+                        // corresponging starting direction
+                        next_visit.extend(pt_neighbors(&p).into_iter().map(|n| (i, n)));
+                    },
+                    Tile::Actor(idx) if !(b.actors[*idx].team==*team) => {
+                        // Found a possbile target
+                        targets.push((p, i));
+                    },
+                    _ => {}
+                }
+            };
+        };
+        if targets.is_empty() {
+            None
+        } else {
+            // Pick closes target by reading order
+            targets.sort();
+            Some(p1s[targets[0].1])
+        }
+    } else {
+        // our actor was already dead 
+        None
+    }
+}
+
+
+#[test]
+fn test_propose_step() {
+let tt1 = &"#######
+#.E..G#
+#.#####
+#G#####
+#######";
+
+    let b = Board::from_str(tt1).expect("Failed parsing");
+    assert_eq!(propose_step(&b, 0), Some((1, 3)) );
+}
+
 
 fn propose_attack(board: &Board, i: usize) -> Option<Pt> {
     // actor at p0 may have died since call was planned
@@ -277,16 +335,8 @@ let tt0 = &"#########
     assert_eq!(b2.actor_at(&p).att, 10);
     battle_round(& mut b2);
     assert_eq!(b2.actor_at(&p1).team, Team::Goblin);
-
-let tt1 = &"#######
-#.E..G#
-#.#####
-#G#####
-#######";
-
-    let b = Board::from_str(tt1).expect("Failed parsing");
-    assert_eq!(propose_step(&b, 0), Some((1, 3)) );
 }
+
 
 
 
