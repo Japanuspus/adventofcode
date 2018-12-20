@@ -28,7 +28,8 @@ enum Team {
 
 #[derive(Debug, Clone)]
 struct Actor {
-    team: Team, 
+    team: Team,
+    att: i32, 
     hp: i32,
     pos: Option<Pt>,
 }
@@ -50,10 +51,10 @@ struct Board {
 impl Board {
     // Apply attack to piece at position p, return final hp
     // Panics if no actor found at site of attack
-    fn actor_attack(self: & mut Self, _: usize, p: &Pt) -> i32{
+    fn actor_attack(self: & mut Self, ia: usize, p: &Pt) -> i32{
         let i = self.index_at(p).unwrap();
-        let n = 3;
-        if self.actors[i].hp < n {
+        let n = self.actors[ia].att;
+        if self.actors[i].hp <= n {
             { 
                 let mut a = & mut self.actors[i];
                 a.pos = None;
@@ -105,6 +106,19 @@ impl Board {
     fn hp(self: & Self, team: Team) -> i32 {
         self.actors.iter().map(|a| if a.team==team {a.hp} else {0}).sum()
     }
+
+    fn count(self: & Self, team: Team) -> usize {
+        self.actors.iter().filter(|a| a.team==team && a.hp>0).count()
+    }
+
+
+    fn set_attack(self: & mut Self, t: &Team, att: i32) {
+        for a in &mut self.actors {
+            if a.team==*t {
+                (*a).att = att;
+            }
+        }
+    }
 }
 
 use std::fmt;
@@ -138,7 +152,8 @@ impl FromStr for Board {
             l.chars().enumerate().map(|(j, c)| match c {
                 'E'|'G' => {
                     actors.push(Actor {
-                        team: if c=='E' {Team::Elf} else {Team::Goblin}, 
+                        team: if c=='E' {Team::Elf} else {Team::Goblin},
+                        att: 3, 
                         hp: 200,
                         pos: Some((i, j))
                         });
@@ -157,7 +172,7 @@ impl FromStr for Board {
 // None if no enemies can be reached or if this tile is dead
 fn propose_step(board: &Board, i: usize) -> Option<Pt> {
     //if let Tile::Actor(Actor {team, hitpoints: _}) = board.get(&p0) {
-    if let Actor{ref team, pos: Some(p0), hp: _} = board.actors[i] {        
+    if let Actor{ref team, pos: Some(p0), ..} = board.actors[i] {        
         let mut b = board.clone();
         let p1s: Vec<Pt> = pt_neighbors(&p0);
 
@@ -193,7 +208,7 @@ fn propose_step(board: &Board, i: usize) -> Option<Pt> {
 
 fn propose_attack(board: &Board, i: usize) -> Option<Pt> {
     // actor at p0 may have died since call was planned
-    if let Actor{ref team, pos: Some(p0), hp: _} = board.actors[i] {
+    if let Actor{ref team, pos: Some(p0), ..} = board.actors[i] {
         //let team = board.get(p0).get_team().unwrap();
         // min_by_key return first entry if multiple are present
         pt_neighbors(&p0).iter().filter_map(|p| 
@@ -216,6 +231,9 @@ fn battle_round(board: & mut Board) -> bool {
     let mut activity = false;
     let mut attack_last_round = false;
     for idx in piece_idcs {
+        if board.actors[idx].pos.is_none() {
+            continue; 
+        }
         attack_last_round = if let Some(pa) = 
             propose_attack(board, idx)
             .or_else(|| { 
@@ -255,35 +273,144 @@ let tt0 = &"#########
     assert_eq!(propose_step(&b, 0), Some(p1.clone()));
 
     let mut b2 = b.clone();
+    b2.set_attack(&Team::Goblin, 10);
+    assert_eq!(b2.actor_at(&p).att, 10);
     battle_round(& mut b2);
     assert_eq!(b2.actor_at(&p1).team, Team::Goblin);
+
+let tt1 = &"#######
+#.E..G#
+#.#####
+#G#####
+#######";
+
+    let b = Board::from_str(tt1).expect("Failed parsing");
+    assert_eq!(propose_step(&b, 0), Some((1, 3)) );
 }
 
 
 
-pub fn part1_01(d: &str) -> i64 {
+fn battle(board: & mut Board) -> usize {
+    let mut rounds: usize = 0;
+    print!("{}\n\n", board);
+    while battle_round(board) {
+        rounds+=1;
+        print!("Full rounds completed {}\n{}\n\n", rounds, board);
+    }
+    print!("After final incomplete round\n{}\n\n", board);
+
+    rounds    
+}
+
+fn battle_quiet(board: & mut Board) -> usize {
+    let mut rounds: usize = 0;
+    while battle_round(board) {
+        rounds+=1;
+    }
+    rounds    
+}
+
+pub fn part1_01(d: &str) -> usize {
     let board0 = Board::from_str(d).expect("Parsing error");
     let mut board = board0.clone();
 
-    let mut rounds: i32 = 0;
-    print!("{}\n\n", &board);
-    while battle_round(& mut board) {
-        rounds+=1;
-        print!("Full rounds completed {}\n{}\n\n", rounds, &board);
-    }
-    print!("After final incomplete round\n{}\n\n", &board);
-
+    let rounds = battle(& mut board);
     let hp=board.hp(Team::Goblin);
     println!("Final hp: {}", hp);
 
-    (hp*rounds) as i64
+    (hp as usize) * rounds
 }
 
-pub fn part2_01(_d: &str) -> i64 {
-    0
+fn save_the_elfs(board0: & Board, attack: i32) -> Option<usize> {
+    let mut board = board0.clone();
+    board.set_attack(&Team::Elf, attack);
+
+    let n0 = board.count(Team::Elf); 
+    let rounds = battle_quiet(& mut board);
+    let n1 = board.count(Team::Elf);
+    let hp=board.hp(Team::Elf);
+
+    println!("At attack strength {}, {} of {} Elfs were alive (total hp: {}) when ended after {} full rounds",
+        attack, n1, n0, hp, rounds);
+    
+    if n0==n1 {Some((hp as usize)*rounds)} else {None}
 }
+
+pub fn part2_01(d: &str) -> usize {
+    let board0 = Board::from_str(d).expect("Parsing error");
+    let mut att = 3;
+    loop {
+        if let Some(score) = save_the_elfs(&board0, att) {
+            //let bb: mut Board = board0.clone();
+            //bb.set_attack(&Team::Elf, att)
+            //battle(& mut bb);
+            break score
+        }
+        att +=1;  
+    }
+}
+
+#[test]
+fn test_2() {
+
+assert_eq!(part2_01("#######
+#.G...#
+#...EG#
+#.#.#G#
+#..G#E#
+#.....#
+#######"), 4988);
+
+assert_eq!(part2_01("####### 
+#E.G#.# 
+#.#G..# 
+#G.#.G# 
+#G..#.# 
+#...E.# 
+#######"), 3478);
+
+assert_eq!(part2_01("#######
+#.E...#
+#.#..G#
+#.###.#
+#E#G#G#
+#...#G#
+#######"),6474);
+
+assert_eq!(part2_01("#########
+#G......#
+#.E.#...#
+#..##..G#
+#...##..#
+#...#...#
+#.G...G.#
+#.....G.#
+#########"),1140);
+
+}
+
+pub fn board_rounds(d: &str) -> usize {
+    //let mut b = Board::from_str(d).expect("Parsing error");
+    battle(& mut Board::from_str(d).expect("Parsing error"))
+}
+#[test]
+fn test_reddit_easy_to_be_wrong() {
+assert_eq!(board_rounds("####
+##E#
+#GG#
+####"), 67);
+
+assert_eq!(board_rounds("#####
+#GG##
+#.###
+#..E#
+#.#G#
+#.E##
+#####"), 71);
+}
+
 
 pub fn run(data: &str) {
     println!("Part 1: {}", part1_01(&data));
-    println!("Part 2: {}", part2_01(&data));
+    println!("Part 2: {}. 47584 too high", part2_01(&data));
 }
