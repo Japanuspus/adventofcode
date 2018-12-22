@@ -6,4 +6,5 @@ edition = "2018"
 
 [dependencies]
 nom="^4.1"
-cgmath = "0.16.1" #Day 14
+#cgmath = "0.16.1" #Point<2> for Day 15 -- dropped in favor of tuples
+itertools = "0.8.0"
