@@ -10,7 +10,7 @@ use std::iter::Iterator;
 // pub type IResult<I, O, E = u32> = Result<(I, O), Err<I, E>>;
 //use std::str::from_utf8;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum LogTypes {
     Sleep,
     Wake,
@@ -59,6 +59,7 @@ named!(parse_msg<&str, LogTypes>,
         )
     )
 );
+
 #[test]
 fn test_parse_msg() {
     assert_eq!(parse_msg("falls asleep"), Ok(("", LogTypes::Sleep)));
