@@ -5,7 +5,7 @@ use nom::bytes::complete::{tag};
 use nom::{
     combinator::map_res,
     sequence::tuple};
-
+use std::collections::HashSet;
 
 #[cfg(test)]
 mod tests {
@@ -18,19 +18,23 @@ mod tests {
 }
 
 #[derive(Debug)]
-struct Interval {
+pub struct Interval {
     skip: u32,
     size: u32
 }
 
 impl Interval {
     pub fn includes(&self, v:u32) -> bool {
-        v > self.skip && v <= self.skip + self.size
+        v > self.skip && v <= self.index_max()
+    }
+
+    pub fn index_max(&self) -> u32 {
+        self.skip + self.size
     }
 }
 
 #[derive(Debug)]
-struct Claim {
+pub struct Claim {
     id: u32, 
     rows: Interval,
     cols: Interval,
@@ -56,14 +60,54 @@ fn parse_claim_all(input: &str) -> Claim {
     Claim{id, rows: Interval{skip: y, size: h}, cols: Interval{skip: x, size: w}}
 }
 
+pub fn in_claims(claims: &[Claim], i_row: u32, i_col: u32) -> usize {
+    claims.iter()
+    .filter(|c| c.rows.includes(i_row) && c.cols.includes(i_col))
+    .count()
+}
 
 pub fn part1_01(d: &str) -> i64 {
     let claims : Vec<Claim> = d.lines().map(parse_claim_all).collect();
-    claims.len() as i64
+    let row_max = claims.iter().map(|c| c.rows.index_max()).max().unwrap();
+    let col_max = claims.iter().map(|c| c.cols.index_max()).max().unwrap();
+    let mut disputed = 0;
+
+    for i_row in 0..row_max+1 {
+        for i_col in 0..col_max+1 {
+            if in_claims(&claims, i_row, i_col) > 1 {
+                disputed += 1;
+            }
+        }
+    }
+    disputed
 }
 
-pub fn part2_01(_d: &str) -> i64 {
-    0
+pub fn part2_01(d: &str) -> i64 {
+    let claims : Vec<Claim> = d.lines().map(parse_claim_all).collect();
+    let row_max = claims.iter().map(|c| c.rows.index_max()).max().unwrap();
+    let col_max = claims.iter().map(|c| c.cols.index_max()).max().unwrap();
+
+    let mut has_clash: HashSet::<u32> = HashSet::with_capacity(claims.len()); 
+    let all_claims: HashSet::<_> = claims.iter().map(|c| c.id).collect();
+
+    for i_row in 0..row_max+1 {
+        for i_col in 0..col_max+1 {
+            let cs: Vec::<_> = claims
+                    .iter()
+                    .filter(|c| c.rows.includes(i_row) && c.cols.includes(i_col))
+                    .collect();
+            if cs.len()>1 {
+                for c in cs {
+                    has_clash.insert(c.id);
+                }
+            }
+        }
+    }
+
+    let undisputed: Vec::<_> = all_claims.difference(&has_clash).clone().collect();
+    println!("Undisputed: {:?}", undisputed);
+    assert_eq!( undisputed.len(), 1 );
+    *undisputed[0] as i64
 }
 
 pub fn run(data: &str) {
