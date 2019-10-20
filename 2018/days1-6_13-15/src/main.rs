@@ -16,7 +16,7 @@ fn main() {
     let days = aoc2018::days();
 
     let dd = days.get(day_name).expect("Unknown day name");
-    let dayfile = format!("inputs/{}.txt", day_name);
+    let dayfile = format!("../inputs/{}.txt", day_name);
     println!("Attempting to read: {}", dayfile);
     let data = fs::read_to_string(dayfile).expect("Error reading file");
 
