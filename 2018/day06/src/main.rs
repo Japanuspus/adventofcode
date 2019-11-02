@@ -93,28 +93,16 @@ fn solve01(d: &str) -> Result<u32, u32> {
     Ok(*d as u32)
 }
 
-fn dsum(pt: &(i32, i32), pegs: &[(i32, i32)]) -> i32 {
-    pegs.iter().map(|p| i32::abs(pt.0-p.0)+i32::abs(pt.1-p.1)).sum()
+fn dsum(p0: i32, p1: i32, pegs: &[(i32, i32)]) -> i32 {
+    pegs.iter().map(|p| i32::abs(p0-p.0)+i32::abs(p1-p.1)).sum()
 }
 
-fn p2above(mut k: u32) -> u32 {
-    let mut p = 1;
-    loop {
-        p <<= 1;
-        k >>= 1;
-        if k==0 {break p}
-    } 
-}
-
-fn count_ok<T>(tl: &(i32, i32), s: u32, f: &T) -> u32 
-where T: FnMut(&(i32, i32))->bool 
+// count i in b so that f(i)<0
+fn count_row<T>(b: &(i32, i32), f: T) -> usize
+where 
+    T: Fn(i32) -> i32
 {
-    8
-}
-
-struct WorkZone<S,U> {
-    top_left: (S, S),
-    size: U
+    (b.0..b.1).into_iter().filter(|y| f(*y)<0).count()
 }
 
 fn solve02(d: &str, dmax: i32) -> Result<u32, u32> {
@@ -125,47 +113,12 @@ fn solve02(d: &str, dmax: i32) -> Result<u32, u32> {
     let x_bounds = min_max(pts.iter().map(|pt| pt.0));
     let y_bounds = min_max(pts.iter().map(|pt| pt.1));
     println!("Bounds are: x: {:?}, y: {:?}", x_bounds, y_bounds);
-    let top_left = (x_bounds.0 - adist, y_bounds.0 - adist);
-    let p2 = p2above((
-            2*adist+[&x_bounds, &y_bounds].into_iter().map(|b| b.1-b.0).max().unwrap()
-        ) as u32) as i32;
-    println!("Top left: {:?}, p2: {:?}", top_left, p2);
 
-    let okfun = |pt| dsum(&pt, &pts) <= dmax;
+    let yb = (y_bounds.0-adist, y_bounds.1+adist);
+    let ct:usize = (x_bounds.0-adist..x_bounds.1+adist).into_iter().map(
+        |x| count_row(&yb, |y| dsum(x, y, &pts)-dmax)
+    ).sum();
 
-    // let ct = count_ok(&top_left, p2, &okfun);
-    let mut workstack = vec![WorkZone{top_left: top_left.clone(), size: p2}];
-    let mut ct = 0i32;
-    let corners = [(0i32, 0i32), (0,1), (1,1), (1,0)];
-
-    loop {
-        if let Some(w)=workstack.pop() {
-            let corner_count = corners.iter()
-                .filter(|c| okfun((w.top_left.0+(w.size-1)*c.0, w.top_left.1+(w.size-1)*c.1)))
-                .count();
-            if corner_count==4 {
-                ct+=w.size*w.size;
-                continue
-            }
-            if corner_count==0 && w.size<adist{
-                continue
-            }
-            if w.size==2 {
-                ct+=corner_count as i32;
-                continue
-            }
-            // recurse into four quadrants 
-            let half=w.size/2;
-            for c in corners.iter() {
-                workstack.push(WorkZone{
-                    top_left: (w.top_left.0+half*c.0, w.top_left.1+half*c.1),
-                    size: half
-                })
-            }
-        } else {
-            break
-        }
-    }
     println!("Size is {}", ct);
 
     Ok(ct as u32)
