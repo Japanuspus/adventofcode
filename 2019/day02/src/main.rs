@@ -10,15 +10,14 @@ fn eval_intcode(input: &Vec<usize>, noun: usize, verb: usize) -> usize {
         if x==99 {
             break;
         }
-
-        let a = state[pc+1];
-        let b = state[pc+2];
-        let c = state[pc+3];
-        state[c] = if x==1 {
-            state[a] + state[b]
+        let r = state[pc+3];
+        state[r] = if x==1 {
+            state[state[pc+1]] + state[state[pc+2]]
         } else if x==2 {
-            state[a] * state[b]
-        } else {0};
+            state[state[pc+1]] * state[state[pc+2]]
+        } else {
+            panic!("Unexpected operand")
+        };
         pc+=4;
     }
     state[0]
@@ -28,7 +27,6 @@ fn main() {
     let input:Vec<usize> = std::fs::read_to_string("input.txt")
         .expect("Error reading input file")
         .split(',').filter_map(|s| s.parse().ok()).collect();
-
 
     // part 1 (moved to eval intcode)
     println!("Part 1: {}", eval_intcode(&input, 12, 02));
