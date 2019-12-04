@@ -37,7 +37,7 @@ fn wire_distance(w: &Vec<Segment>) -> HashMap<(i32, i32), usize> {
     // Cannot just collect to get correct duplicate semantics
     let mut r:HashMap<_,_> = HashMap::new();
     for (i, p) in wire_path(w).into_iter().enumerate() {
-        r.entry(p).or_insert(i);
+        r.entry(p).or_insert(i+1);
     }
     r
 }
@@ -52,12 +52,13 @@ fn main() {
     // Part 1
     let wire0: HashSet<_> = wire_path(&input[0]).drain(..).collect();
     let wire1: HashSet<_> = wire_path(&input[1]).drain(..).collect();
-    let min_dist = wire0.intersection(&wire1).map(|(dr,dc)| dr.abs()+dc.abs()).min().unwrap();
+    let intersections = wire0.intersection(&wire1);
+    let min_dist = intersections.clone().map(|(dr,dc)| dr.abs()+dc.abs()).min().unwrap();
     println!("Part 1: {}", min_dist);
 
     // Part 2
     let d0 = wire_distance(&input[0]);
     let d1 = wire_distance(&input[1]);
-    let min_wire_dist = wire0.intersection(&wire1).map(|p| d0.get(p).unwrap()+d1.get(p).unwrap()).min().unwrap();
-    println!("Part 2: {}", min_wire_dist+2);
+    let min_wire_dist = intersections.map(|p| d0.get(p).unwrap()+d1.get(p).unwrap()).min().unwrap();
+    println!("Part 2: {}", min_wire_dist);
 }
