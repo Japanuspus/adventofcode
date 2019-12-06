@@ -23,68 +23,62 @@ struct State {
     pc: usize
 }
 
-fn get_next(s: &mut State, mode: Option<u8>) -> &isize{
-    let r = match mode {
-        Some(1) => {&s.tape[s.pc]},
-        _ => &s.tape[s.tape[s.pc] as usize]
-    };
-    s.pc+=1;
-    r
-}
+impl State {
+    fn get(&mut self, m: &mut impl iter::Iterator<Item=u8>) -> isize {
+        let r = match m.next() {
+            Some(1) => {self.tape[self.pc]},
+            _ => self.tape[self.tape[self.pc] as usize]
+        };
+        self.pc+=1;
+        r
+    }
 
-fn put_next(s: &mut State, v: isize) {
-    let a = s.tape[s.pc] as usize; 
-    s.tape[a] = v;
-    s.pc+=1;
+    fn put(&mut self, v: isize) {
+        let a = self.tape[self.pc] as usize;
+        self.tape[a] = v;
+        self.pc+=1;
+    }
 }
 
 fn eval_intcode(mut s: State) -> State {
     loop {
-        let mut opit = digits_from_right(&s.tape[s.pc]);
-        let op=opit.next().unwrap() + 10*opit.next().unwrap();
+        let m = &mut digits_from_right(&s.tape[s.pc]);
+        let op=m.take(2).zip(&[1, 10]).map(|(v, m)| v*m).sum();
         s.pc += 1;
         match op {
             1 => { // add
-                let a = *get_next(&mut s, opit.next());
-                let b = *get_next(&mut s, opit.next());
-                put_next(&mut s, a+b);
+                let v = s.get(m)+s.get(m);
+                s.put(v);
             }
             2 => { // mul
-                let a = *get_next(&mut s, opit.next());
-                let b = *get_next(&mut s, opit.next());
-                put_next(&mut s, a*b);
-            }
-            4 => { // out
-                let a = *get_next(&mut s, opit.next());
-                s.stack.push(a);
+                let v = s.get(m)*s.get(m);
+                s.put(v);
             }
             3 => { // in
                 let v = s.stack.pop().unwrap();
-                put_next(&mut s, v);
+                s.put(v);
+            }
+            4 => { // out
+                let a = s.get(m);
+                s.stack.push(a);
             }
             5 => { // jnz
-                let a = *get_next(&mut s, opit.next());
-                let d = *get_next(&mut s, opit.next());
-                if a != 0 {
-                    s.pc = d as usize;
-                }
+                let a = s.get(m);
+                let d = s.get(m) as usize;
+                if a != 0 { s.pc = d as usize;}
             }
             6 => { // jz
-                let a = *get_next(&mut s, opit.next());
-                let d = *get_next(&mut s, opit.next());
-                if a == 0 {
-                    s.pc = d as usize;
-                }
+                let a = s.get(m);
+                let d = s.get(m) as usize;
+                if a == 0 { s.pc = d;}
             }
             7 => { // lt
-                let a = *get_next(&mut s, opit.next());
-                let b = *get_next(&mut s, opit.next());
-                put_next(&mut s, (a < b) as isize)
+                let v = (s.get(m) < s.get(m)) as isize;
+                s.put(v);
             }
             8 => { // eq
-                let a = *get_next(&mut s, opit.next());
-                let b = *get_next(&mut s, opit.next());
-                put_next(&mut s, (a == b) as isize)
+                let v = (s.get(m) == s.get(m)) as isize;
+                s.put(v);
             }
             99 => { // halt
                 break;
@@ -97,6 +91,21 @@ fn eval_intcode(mut s: State) -> State {
     };
     s
 }
+
+fn main() {
+    let input: Vec<isize> = std::fs::read_to_string("input.txt")
+        .expect("Error reading input file")
+        .lines().next().unwrap()
+        .split(',').map(|s| s.parse().unwrap())
+        .collect();
+
+    let s = eval_intcode(State{stack: vec![1], tape: input.clone(), pc: 0});
+    dbg!(&s.stack);
+
+    let s = eval_intcode(State{stack: vec![5], tape: input.clone(), pc: 0});
+    dbg!(&s.stack);
+}
+
 
 #[test]
 fn test_eval() {
@@ -119,20 +128,4 @@ fn test_part2() {
 
     let s = eval_intcode(State{stack: vec![9], tape: c.clone(), pc: 0});
     assert_eq!(s.stack[0], 1001);
-
-}
-
-fn main() {
-    let input: Vec<isize> = std::fs::read_to_string("input.txt")
-        .expect("Error reading input file")
-        .lines().next().unwrap()
-        .split(',').map(|s| s.parse().unwrap())
-        .collect();
-
-    let s = eval_intcode(State{stack: vec![1], tape: input.clone(), pc: 0});
-    dbg!(&s.stack);
-
-    let s = eval_intcode(State{stack: vec![5], tape: input.clone(), pc: 0});
-    dbg!(&s.stack);
-
 }
