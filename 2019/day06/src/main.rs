@@ -1,6 +1,6 @@
 #![allow(unused)]
 use std::iter;
-use std::collections::HashMap;
+use std::collections::{HashSet, HashMap};
 
 
 fn main() {
@@ -9,53 +9,26 @@ fn main() {
         .lines().map(|s| {let mut r=s.split(')'); (r.next().unwrap(), r.next().unwrap())}).collect();
 
     let ancestor: HashMap<_,_> = edges.iter().map(|e| (e.1, e.0)).collect();
-    let mut child_count: HashMap<&str,usize> = HashMap::new();
-    for e in edges.iter() {
-        child_count.entry(e.1).or_insert(0);
-        child_count.entry(e.0).and_modify(|c| *c+=1).or_insert(1);
-    }
+    let nodes:HashSet<_> = edges.iter().map(|e| e.0).chain(edges.iter().map(|e| e.1)).collect();
 
     // part 1
-    let mut count: usize = 0;
-    let all = child_count.iter().map(|(n, c)| *n);
-    for r in all {
-        let mut p = r;
-        loop {
-            if let Some(pn) = ancestor.get(p) {
-                p = pn;
-                count+=1;
-            } else {
-                break
-            }
-        }
-    }
+    let count:usize = nodes.iter().map(|r| 
+        iter::successors(Some(r), |p| ancestor.get(*p)).count()
+    ).sum();
     println!("Part 1: {}", &count);
 
     // part 2
-    let mut dline = HashMap::new();
-    let mut p:&str = "YOU";
-    let mut d = 0;
-    loop {
-        if let Some(pn) = ancestor.get(p) {
-            p = pn;
-            dline.insert(*pn, d);
-            d+=1;
-        } else {
-            break
-        }
-    }
-    let mut p:&str = "SAN";
-    let mut d = 0;
-    loop {
-        if let Some(pn) = ancestor.get(p) {
-            p = pn;
-            if let Some(you_d) = dline.get(pn) {
-                println!("Part 1: {}", d+you_d);
-                break;
-            }
-            d+=1;
-        } else {
-            break
+    // All ancestors of YOU
+    let mut dline: HashMap<_,_> = 
+        iter::successors(Some(&"YOU"), |p| ancestor.get(*p))
+        .enumerate()
+        .map(|(i, n)| (n, i))
+        .collect();
+    // search through SAN ancestors for for first common ancestor
+    for (d, n) in iter::successors(Some(&"SAN"), |p| ancestor.get(*p)).enumerate() {
+        if let Some(you_d) = dline.get(n) {
+            println!("Part 2: {}", d+you_d);
+            break;
         }
     }
 }
