@@ -44,24 +44,50 @@ fn eval_intcode(mut s: State) -> State {
         let op=opit.next().unwrap() + 10*opit.next().unwrap();
         s.pc += 1;
         match op {
-            99 => {break;}
-            4 => {
-                let a = *get_next(&mut s, opit.next());
-                s.stack.push(a);
-            }
-            3 => {
-                let v = s.stack.pop().unwrap();
-                put_next(&mut s, v);
-            }
-            1 => {
+            1 => { // add
                 let a = *get_next(&mut s, opit.next());
                 let b = *get_next(&mut s, opit.next());
                 put_next(&mut s, a+b);
             }
-            2 => {
+            2 => { // mul
                 let a = *get_next(&mut s, opit.next());
                 let b = *get_next(&mut s, opit.next());
                 put_next(&mut s, a*b);
+            }
+            4 => { // out
+                let a = *get_next(&mut s, opit.next());
+                s.stack.push(a);
+            }
+            3 => { // in
+                let v = s.stack.pop().unwrap();
+                put_next(&mut s, v);
+            }
+            5 => { // jnz
+                let a = *get_next(&mut s, opit.next());
+                let d = *get_next(&mut s, opit.next());
+                if a != 0 {
+                    s.pc = d as usize;
+                }
+            }
+            6 => { // jz
+                let a = *get_next(&mut s, opit.next());
+                let d = *get_next(&mut s, opit.next());
+                if a == 0 {
+                    s.pc = d as usize;
+                }
+            }
+            7 => { // lt
+                let a = *get_next(&mut s, opit.next());
+                let b = *get_next(&mut s, opit.next());
+                put_next(&mut s, (a < b) as isize)
+            }
+            8 => { // eq
+                let a = *get_next(&mut s, opit.next());
+                let b = *get_next(&mut s, opit.next());
+                put_next(&mut s, (a == b) as isize)
+            }
+            99 => { // halt
+                break;
             }
             _ => {
                 dbg!(s);
@@ -78,6 +104,24 @@ fn test_eval() {
     assert_eq!(s.tape[4], 99);
 }
 
+
+#[test] 
+fn test_part2() {
+    let c = vec![3,21,1008,21,8,20,1005,20,22,107,8,21,20,1006,20,31,
+    1106,0,36,98,0,0,1002,21,125,20,4,20,1105,1,46,104,
+    999,1105,1,46,1101,1000,1,20,4,20,1105,1,46,98,99];
+
+    let s = eval_intcode(State{stack: vec![7], tape: c.clone(), pc: 0});
+    assert_eq!(s.stack[0], 999);
+
+    let s = eval_intcode(State{stack: vec![8], tape: c.clone(), pc: 0});
+    assert_eq!(s.stack[0], 1000);
+
+    let s = eval_intcode(State{stack: vec![9], tape: c.clone(), pc: 0});
+    assert_eq!(s.stack[0], 1001);
+
+}
+
 fn main() {
     let input: Vec<isize> = std::fs::read_to_string("input.txt")
         .expect("Error reading input file")
@@ -86,6 +130,9 @@ fn main() {
         .collect();
 
     let s = eval_intcode(State{stack: vec![1], tape: input.clone(), pc: 0});
-    
     dbg!(&s.stack);
+
+    let s = eval_intcode(State{stack: vec![5], tape: input.clone(), pc: 0});
+    dbg!(&s.stack);
+
 }
