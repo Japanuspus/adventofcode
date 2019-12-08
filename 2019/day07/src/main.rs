@@ -19,7 +19,6 @@ fn test_digits_from_right() {
 
 #[derive(Debug)]
 struct State {
-    stack: Vec<isize>,
     tape: Vec<isize>,
     pc: usize
 }
@@ -45,9 +44,14 @@ impl State {
             Err(())
         }
     }
+
+    fn next_output(&mut self, inputs: &[isize]) -> Result<Option<isize>, ()> {
+        next_output(self, inputs)
+    }
 }
 
-fn eval_intcode(mut s: State) -> Result<State,()> {
+fn next_output(s: &mut State, inputs: &[isize]) -> Result<Option<isize>,()> {
+    let mut iter_input = inputs.iter();
     loop {
         let m = &mut digits_from_right(
             s.tape.get(s.pc).ok_or(())?
@@ -64,12 +68,11 @@ fn eval_intcode(mut s: State) -> Result<State,()> {
                 s.put(v)?;
             }
             3 => { // in
-                let v = s.stack.pop().unwrap();
-                s.put(v)?;
+                s.put(*iter_input.next().ok_or(())?)?;
             }
             4 => { // out
                 let a = s.get(m)?;
-                s.stack.push(a);
+                return Ok(Some(a));
             }
             5 => { // jnz
                 let a = s.get(m)?;
@@ -99,7 +102,36 @@ fn eval_intcode(mut s: State) -> Result<State,()> {
             }
         }
     };
-    Ok(s)
+    Ok(None)
+}
+
+fn eval_first(input: &Vec<isize>, phases: &[isize], input0: isize) -> (Vec<State>, isize) {
+    let mut states = Vec::new();
+    let mut next_input = input0;
+    for p in phases {
+        let int_code_inputs = vec![*p, next_input];
+        let mut s = State{tape: input.clone(), pc: 0};
+        if let Some(res) = s.next_output(&int_code_inputs[..]).unwrap() {
+            next_input = res;
+        } else {
+            dbg!(&s);
+            panic!("No output before halt!");
+        }
+        states.push(s);
+    }
+    (states, next_input)
+}
+
+fn eval_other(states: &mut Vec<State>, input: isize) -> Option<isize> {
+    let mut next_input = input;
+    for s in states {
+        if let Some(v) = s.next_output(&[next_input]).unwrap() {
+            next_input = v;
+        } else {
+            return None;
+        }
+    }
+    Some(next_input)
 }
 
 fn main() {
@@ -109,25 +141,32 @@ fn main() {
         .split(',').map(|s| s.parse().unwrap())
         .collect();
 
+    // part 1
+    let mut outputs = Vec::new();
     let mut phases = [0, 1, 2, 3, 4];
-    let mut output = Vec::new();
     heap_recursive(&mut phases, |permutation| {
-        let mut next_input = 0;
-        for phase in permutation.iter() {
-            let mut stack = vec![next_input];
-            stack.push(*phase); 
-            let res = eval_intcode(State{stack: stack, tape: input.clone(), pc: 0});
-            match res {
-                Ok(state) => {next_input = state.stack[0];}
-                Err(_) => {
-                    println!("intcode failed");
-                    break;
-                }
-            };
-        }
-        output.push(next_input);
+        outputs.push(eval_first(&input, permutation, 0).1);
     });
-    println!("Part 1: {}", output.iter().max().unwrap());
+    println!("Part 1: {}", outputs.iter().max().unwrap());
+
+
+    // part 2
+    let mut outputs = Vec::new();
+    let mut phases = [5, 6, 7, 8, 9];
+    heap_recursive(&mut phases, |permutation| {
+        let (mut states, input0) = eval_first(&input, permutation, 0);
+        let mut next_input = input0;
+        loop {
+            if let Some(v) = eval_other(&mut states, next_input) {
+                next_input = v;
+            } else {
+                outputs.push(next_input);
+                break;
+            }
+        }
+    });
+    println!("Part 2: {}", outputs.iter().max().unwrap());
+    
 }
 
 
