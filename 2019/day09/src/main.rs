@@ -5,7 +5,7 @@ extern crate num_traits;
 
 use std::collections::{HashSet, HashMap};
 use std::iter;
-use num_bigint::BigInt;
+use num_bigint::{ToBigInt, BigInt};
 use num_traits::{Zero, One};
 use std::mem::replace;
 
@@ -21,18 +21,33 @@ struct State {
 }
 
 impl State {
-    fn get(&mut self, m: &mut impl iter::Iterator<Item=u8>) -> &BigInt {
-        let g1 = self.tape.entry(self.pc).or_insert(Zero::zero());
-        self.pc+=1;
+    fn get_adress(&mut self, m: &mut impl iter::Iterator<Item=u8>) -> BigInt {
+        // TODO: Avoid key clones by returning reference to static zero on lookup miss
+        let g1 = self.pc.clone();
         match m.next() {
-            Some(1) => g1,
-            _ => self.tape.entry(*g1).or_insert(Zero::zero())
+            Some(0) => { //normal
+                self.tape.entry(g1).or_insert(Zero::zero()).clone()
+            }
+            Some(1) => { // immediate
+                g1
+            }
+            Some(2) => { //relative
+                self.tape.entry(g1).or_insert(Zero::zero()).clone() + &self.sp
+            }
+            _ => {panic!("Unknown mode");}
         }
     }
 
-    fn put(&mut self, v: BigInt) {
-        let a = self.tape.entry(self.pc).or_insert(Zero::zero());
-        self.tape.insert(a.clone(), v);
+    fn get(&mut self, m: &mut impl iter::Iterator<Item=u8>) -> &BigInt {
+        let g0 = self.get_adress(m);
+        self.pc+=1;
+        self.tape.entry(g0).or_insert(Zero::zero())
+    }
+
+    fn put(&mut self, v: BigInt, m: &mut impl iter::Iterator<Item=u8>) {
+        let g0 = self.get_adress(m);
+        self.pc+=1;
+        self.tape.insert(g0, v);
     }
 
     fn next_output(&mut self, inputs: &[BigInt]) -> Result<Option<BigInt>, ()> {
@@ -44,21 +59,21 @@ fn next_output(s: &mut State, inputs: &[BigInt]) -> Result<Option<BigInt>,()> {
     let mut iter_input = inputs.iter();
     loop {
         let m = &mut digits_from_right(
-            s.tape.entry(s.pc).or_insert(Zero::zero())
+            s.tape.get(&s.pc).unwrap_or(&Zero::zero())
         );
         let op=m.take(2).zip(&[1, 10]).map(|(v, m)| v*m).sum();
         s.pc += 1;
         match op {
             1 => { // add
-                let v = s.get(m)+s.get(m);
-                s.put(v);
+                let v = s.get(m).clone() + s.get(m);
+                s.put(v, m);
             }
             2 => { // mul
-                let v = s.get(m)*s.get(m);
-                s.put(v);
+                let v = s.get(m).clone() * s.get(m);
+                s.put(v, m);
             }
             3 => { // in
-                s.put(*iter_input.next().ok_or(())?);
+                s.put(iter_input.next().ok_or(())?.clone(), m);
             }
             4 => { // out
                 let a = s.get(m);
@@ -75,12 +90,16 @@ fn next_output(s: &mut State, inputs: &[BigInt]) -> Result<Option<BigInt>,()> {
                 if cond { s.pc = d.clone();}
             }
             7 => { // lt
-                let v = (s.get(m) < s.get(m));
-                s.put(if v {One::one()} else {Zero::zero()});
+                let v = (s.get(m).clone() < *s.get(m));
+                s.put(if v {One::one()} else {Zero::zero()}, m);
             }
             8 => { // eq
-                let v = (s.get(m) == s.get(m));
-                s.put(if v {One::one()} else {Zero::zero()});
+                let v = (s.get(m).clone() == *s.get(m));
+                s.put(if v {One::one()} else {Zero::zero()}, m);
+            }
+            9 => { // adjust relbase
+                let v = s.get(m).clone();
+                s.sp += v;
             }
             99 => { // halt
                 break;
@@ -95,15 +114,32 @@ fn next_output(s: &mut State, inputs: &[BigInt]) -> Result<Option<BigInt>,()> {
     Ok(None)
 }
 
-fn main() {
-    let input: Vec<isize> = std::fs::read_to_string("input.txt")
-        .expect("Error reading input file")
+fn from_str(s: &str) -> State {
+    let input: Vec<BigInt> = s
         .lines().next().unwrap()
         .split(',').map(|s| s.parse().unwrap())
         .collect();
 
+    State{
+        tape: input.iter().enumerate().map(|(i,v)| (i.to_bigint().unwrap(), v.clone())).collect(),
+        pc: Zero::zero(),
+        sp: Zero::zero()
+    }
+}
 
-    
+fn main() {
+    let input = std::fs::read_to_string("input.txt")
+        .expect("Error reading input file");
+
+    let mut s = from_str(&input);
+    let inputs:Vec<BigInt> = vec![One::one()];
+    let res = s.next_output(&inputs[..]).unwrap();
+    println!("Part 1: {}", res.unwrap());
+
+    let mut s = from_str(&input);
+    let inputs:Vec<BigInt> = vec![2.to_bigint().unwrap()];
+    let res = s.next_output(&inputs[..]).unwrap();
+    println!("Part 2: {}", res.unwrap());
 }
 
 
