@@ -5,6 +5,7 @@ use std::collections::{BTreeMap};
 use std::iter;
 use num_bigint::{BigInt};
 use num_traits::{Zero, One};
+use num_traits::cast::ToPrimitive;
 use std::convert::From;
 
 fn digits_from_right(k: &BigInt) -> impl Iterator<Item=u8> {
@@ -63,6 +64,35 @@ impl State {
         next_output(self, || ii.next())
     }
 
+    /// Get exactly n outputs as a vector
+    /// 
+    /// If machine halts before output, None is returned. Any other deviation results in Err.
+    /// Outputs are cast back to isize, which may fail.
+    pub fn next_numbers<F>(&mut self, n: usize, mut inputs: F) -> Result<Option<Vec<isize>>,()> 
+    where
+        F: FnMut() -> Option<isize>
+    {        
+        let mut res = Vec::new();
+        let mut ii = || inputs().and_then(|x| Some(BigInt::from(x)));
+        for _ in 0..n {
+            if let Some(v) = next_output(self, &mut ii)? {
+                if let Some(v_isize) = v.to_isize() {
+                    res.push(v_isize)
+                } else {
+                    // output was too big for isize
+                    return Err(())
+                }
+            } else {
+                // halt before output
+                break
+            }
+        };
+        let n_out = res.len();
+        if n_out==0 {Ok(None)} else {
+            if n_out==n {Ok(Some(res))} 
+            else {Err(())} // partial output
+        }
+    }
 }
 
 fn next_output<F>(s: &mut State, mut inputs: F) -> Result<Option<BigInt>,()> 
