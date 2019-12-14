@@ -93,6 +93,10 @@ impl State {
             else {Err(())} // partial output
         }
     }
+
+    pub fn poke(&mut self, addr: usize, value: isize) {
+        self.tape.insert(BigInt::from(addr), BigInt::from(value)); 
+    }
 }
 
 fn next_output<F>(s: &mut State, mut inputs: F) -> Result<Option<BigInt>,()> 
