@@ -35,33 +35,27 @@ fn ceil_div(n: isize, m:isize) -> isize {
     (n + (m-1))/m
 }
 
-fn main() {
-    let input = std::fs::read_to_string("input.txt")
-        .expect("Error reading input file");
-    let recipes: Vec<_> = input.lines().map(parse_recipe).collect();   
-
+fn get_ore_requirement<'a>(fuel_requirement: isize, recipes: &Vec<Recipe<'a>>) -> isize {
     let mut materials: HashMap<_, _> = recipes.iter()
         .map(|r| (r.dst.name, Material::new(r)))
         .collect();
-    let ore_recipe = Recipe{dst: Ingredient{name: "ORE", amnt: 1}, ingr: Vec::new()};
-    materials.insert(ore_recipe.dst.name, Material::new(&ore_recipe));
-    for r in &recipes {
+    for r in recipes {
         for i in &r.ingr {
             materials.entry(i.name).and_modify(|m| {m.needed_for.insert(r.dst.name);});
         }
     }
 
-    let mut demands = Vec::new();
-    demands.push((Ingredient{name: "FUEL", amnt: 1}, "Part one solution"));
+    let mut demands = Vec::new(); // work stack
+    demands.push((Ingredient{name: "FUEL", amnt: fuel_requirement}, "Part one solution"));
     loop {
         if let Some((d, req)) = demands.pop() {
             let mut m = materials.get_mut(d.name).unwrap();
             m.demand += d.amnt;
-            !m.needed_for.remove(req);
+            m.needed_for.remove(req);
             if m.needed_for.len()==0 {
                 // all demands registered, push input demands
                 let n = ceil_div(m.demand, m.recipe.dst.amnt); 
-                println!("Recipe for {} runs {} times", d.name, &n);
+                // println!("Recipe for {} runs {} times", d.name, &n);
                 demands.extend(
                     m.recipe.ingr.iter().map(|i| (
                         Ingredient{name: i.name, amnt: i.amnt*n},
@@ -69,10 +63,32 @@ fn main() {
                     ))
                 );
             }
-        } else {
-            break;
-        }
+        } else { break;}
     }
-    //dbg!(materials);
-    println!("Part 1: Ore demand: {}", materials.get("ORE").unwrap().demand);
+    materials.get("ORE").unwrap().demand
+}
+
+fn main() {
+    let input = std::fs::read_to_string("input.txt")
+        .expect("Error reading input file");
+    let recipes: Vec<_> = input.lines().map(parse_recipe).chain(
+        std::iter::once(Recipe{dst: Ingredient{name: "ORE", amnt: 1}, ingr: Vec::new()})
+    ).collect();   
+
+    // part 1
+    let o1 = get_ore_requirement(1, &recipes);
+    println!("Part 1: Ore demand: {}", o1);
+
+    // part 2
+    let otot: isize = 1000000000000;
+    let mut nmin = 1;
+    let mut omin = o1;
+    while otot-omin > o1 {
+        nmin += (otot-omin)/o1;
+        omin = get_ore_requirement(nmin, &recipes); 
+    }
+    println!("After newton: F {} -> O: {}", nmin, omin);
+    // maybe babystep a bit further
+    while get_ore_requirement(nmin+1, &recipes) <= otot { nmin+=1;}
+    println!("Part 2: {}", nmin);
 }
