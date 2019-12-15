@@ -7,7 +7,9 @@ use std::fmt;
 #[derive(Debug)]
 struct Machine {
     canvas: Canvas, 
-    score: isize
+    score: isize,
+    ball_x: isize,
+    paddle_x: isize
 }
 
 impl fmt::Display for Machine {
@@ -17,12 +19,17 @@ impl fmt::Display for Machine {
     }
 }
 
-impl Machine {
+impl Machine {  // paddle: 3, ball: 4   
     fn update1(&mut self, p: &Vec<isize>) {
         if p[0]<0 {
             self.score = p[2];
         } else {
             self.canvas.set(p[0], p[1], p[2]);
+            match p[2] {
+                3 => {self.paddle_x = p[0];}
+                4 => {self.ball_x = p[0];}
+                _ => {}
+            }
         }
     }
     fn update(&mut self, o: &Vec<Vec<isize>>) {
@@ -45,6 +52,14 @@ fn poll_joystick() -> isize {
     v
 }
 
+fn poll_machine(m: &Machine) -> isize {
+    let d = if m.paddle_x < m.ball_x {1} else {
+        if m.paddle_x > m.ball_x {-1} else {0}
+    };
+    println!("Paddle at {} ball at {}: Direction: {}", m.paddle_x, m.ball_x, d);
+    d
+}
+
 fn main() {
     let input = std::fs::read_to_string("input.txt")
         .expect("Error reading input file");
@@ -63,13 +78,14 @@ fn main() {
         canvas: Canvas::for_points(
             screen0.iter().filter_map(|c| if c[0]>=0 {Some((c[0], c[1]))} else {None}),
             " #+-o   "),
-        score: 0};
+        score: 0, ball_x: 0, paddle_x: 0};
     let mut s = State::from(&input);
     s.poke(0, 2); // insert coin
     loop {
         if let Some(p) = s.next_numbers(3, || {
                 println!("{}", m);
-                Some(poll_joystick())
+                //Some(poll_joystick())
+                Some(poll_machine(&m))
             }).unwrap() {
             m.update1(&p);
         }
