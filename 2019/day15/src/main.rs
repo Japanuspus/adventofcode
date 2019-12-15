@@ -1,9 +1,7 @@
 #![allow(unused)]
 
 use std::collections::{HashMap, VecDeque};
-// use std::iter;
 use day11::State;
-
 
 type Pos = (isize, isize);
 
@@ -25,6 +23,26 @@ fn opp(d: isize) -> isize {
         4 => 3, 
         _ => {panic!("bad direction")}
     }
+}
+
+fn fill_distance(map: &HashMap<Pos, isize>, origin: Pos) -> HashMap<Pos, isize> {
+    // min distance floodfill
+    let mut dists = HashMap::new();
+    dists.insert(origin, 0);
+    let mut work = VecDeque::new();
+    work.push_back(origin);
+    while let Some(p0) = work.pop_front() {
+        let pts: Vec<_> = (1..5)
+            .map(|d| dp(&p0, d))
+            .filter(|p1|  dists.get(p1).is_none() && *map.get(p1).unwrap_or(&0)>0)
+            .collect();
+        let d1 = 1+dists.get(&p0).unwrap();
+        for p in pts {
+            dists.insert(p, d1);
+            work.push_back(p);
+        }
+    }
+    dists
 }
 
 // N1, S2, W3, E4
@@ -63,21 +81,11 @@ fn main() {
     let oxygen = oxygen.unwrap();
 
     // min distance floodfill
-    let mut dists = HashMap::new();
-    dists.insert((0,0), 0);
-    let mut work = VecDeque::new();
-    work.push_back((0,0));
-    while let Some(p0) = work.pop_front() {
-        let d1 = 1+dists.get(&p0).unwrap();
-        let pts: Vec<_> = (1..5)
-            .map(|d| dp(&p0, d))
-            .filter(|p1|  dists.get(p1).is_none() && *map.get(p1).unwrap_or(&0)>0)
-            .collect();
-        for p in pts {
-            dists.insert(p, d1);
-            work.push_back(p);
-        }
-    }
-
+    let dists = fill_distance(&map, (0,0));
     println!("Part 1: {}", dists.get(&oxygen).unwrap());
+
+    // Part 2
+    let ofill = fill_distance(&map, oxygen.clone());
+    println!("Part 2: {}",
+        ofill.values().max().unwrap());
 }
