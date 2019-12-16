@@ -15,7 +15,7 @@ fn main() {
 
     let mut dv = digs.clone();
     for _ in 0..100 {
-        let res: Vec<_> = (1..=n).map(|r| {
+        dv = (1..=n).map(|r| {
             let mut rval: isize = dv.iter()
                 .zip(rbase.iter().cycle().flat_map(|m| std::iter::repeat(m).take(r)).skip(1))
                 .map(|(a,b)| a*b)
@@ -23,7 +23,19 @@ fn main() {
             rval = rval.abs() % 10;
             rval 
         }).collect();
-        dv = res;
-        println!("{:?}", &dv[..8]);
+        // println!("{:?}", &dv[..8]);
     }
+    println!("Part 1: {}", dv.iter().rev().take(8).map(|c| format!("{}", c)).collect::<Vec<_>>().join(""));
+
+    // Part 2
+    let nskip = digs.iter().take(7).fold(0, |acc, d| acc*10+d);
+    println!("Part 2, skipping {}", nskip);
+    // weights are all 1 out here, cumsum from rear end is all we need
+    let dv: Vec<isize> = digs.iter().cycle().take(n*10000).skip(nskip as usize).cloned().collect();
+    let mut dvr: Vec<isize> = dv.iter().rev().cloned().collect();
+    for _ in 0..100 {
+        dvr = dvr.iter().scan(0, |acc, d| {*acc = (*acc + d) % 10; Some(*acc)}).collect();
+    }
+    let res: Vec<_> = dvr.iter().rev().take(8).map(|c| format!("{}", c)).collect();
+    println!("part 2: {}", res.join(""));
 }
