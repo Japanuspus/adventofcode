@@ -65,10 +65,7 @@ fn main() {
                     .and_then(|v| if *v!=b'.' {Some(1)} else {None})
                 )
                 .count();
-            
-            //dbg!(nb);
             if nb>2 {
-                dbg!((&p,&v, &nb));
                 let coord_num = p.0*p.1;
                 coord_sum += coord_num;
             }
