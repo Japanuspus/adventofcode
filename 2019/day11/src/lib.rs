@@ -56,6 +56,21 @@ impl State {
         next_output(self, inputs)
     }
 
+    pub fn next_number_callback<F>(&mut self, mut inputs: F) -> Result<Option<isize>, ()> 
+    where
+        F: FnMut() -> Option<isize>
+    {
+        let r = next_output(self, || inputs().and_then(|v| Some(BigInt::from(v))));
+        let w = r.or(Err(()))?;
+        if let Some(v) = w {
+            let vi = v.to_isize().ok_or(())?; 
+            Ok(Some(vi))
+        } else {
+            Ok(None) //no output
+        }
+    }
+
+
     pub fn next_output(&mut self, inputs: &[isize]) -> Result<Option<BigInt>, ()> 
     {
         let mut ii = inputs
