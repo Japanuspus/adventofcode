@@ -30,7 +30,7 @@ fn opp(d: isize) -> isize {
 fn main() {
     let input = std::fs::read_to_string("input.txt")
         .expect("Error reading input file");
-    let mut s = State::from(input);
+    let mut s = State::from(&input);
     
     let mut x: isize = 0;
     let mut y: isize = 0;
@@ -72,4 +72,21 @@ fn main() {
         }
     }
     println!("Part 1: {}", coord_sum);
+
+    // Part 2
+    let mut s = State::from(&input);
+    s.poke(0, 2);
+    let codez: Vec<_> = "A,A,B,C,B,C,B,C,A,C
+R,6,L,8,R,8
+R,4,R,6,R,6,R,4,R,4
+L,8,R,6,L,10,L,10
+n
+".as_bytes().iter().map(|b| *b as isize).collect();
+    let mut codeiter = codez.into_iter();
+    let mut last_o = 0;
+    while let Some(o) = s.next_number_callback(|| codeiter.next()).unwrap() {
+        last_o = o;
+        print!("{}", (o as u8) as char)
+    }
+    println!("Part 2: {}", last_o);
 }
