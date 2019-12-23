@@ -12,7 +12,7 @@ fn digits_from_right(k: &BigInt) -> impl Iterator<Item=u8> {
     k.to_string().into_bytes().into_iter().rev().map(|c| c-b'0').chain(iter::repeat(0))
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct State {
     tape: BTreeMap<BigInt, BigInt>,
     pc: BigInt,
@@ -111,6 +111,11 @@ impl State {
 
     pub fn poke(&mut self, addr: usize, value: isize) {
         self.tape.insert(BigInt::from(addr), BigInt::from(value)); 
+    }
+
+    pub fn reset(&mut self) {
+        self.pc = Zero::zero();
+        self.sp = Zero::zero();
     }
 }
 
