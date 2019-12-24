@@ -5,33 +5,33 @@
 use std::collections::VecDeque;
 // use std::iter;
 use day11::State; // dep: day11 = {path="../day11"}
+use std::thread;
+use std::sync::mpsc;
+use std::sync::mpsc::channel;
 
-struct Machine {
-    state: State,
-    inputs: VecDeque<isize>,
+type Packet = (isize, isize);
+
+struct PacketReceiver {
+    id: isize,
+    rx: mpsc::Receiver<Packet>,
+    pending: Option<isize>
 }
 
-impl Machine {
-    fn step(&mut self) -> Option<Vec<isize>> {
-        let mut state = &mut self.state;
-        let mut inputs = &mut self.inputs;
-        let packet = state.next_numbers(3, || inputs.pop_front().or(Some(-1)));
-        packet.unwrap()
-    }
-}
-
-fn main_loop(machines: &mut Vec<Machine>) -> isize {
-    loop {
-        for idx in 0..machines.len() {
-            if let Some(packet) = machines[idx].step() {
-                let addr = packet[0];
-                let x = packet[1];
-                let y = packet[2];
-                println!("Packet {} --> {}: ({}, {})", idx, addr, x, y);
-                if addr == 255 {return y}
-                machines[addr as usize].inputs.push_back(x);
-                machines[addr as usize].inputs.push_back(y);
+impl PacketReceiver {
+    fn get(&mut self) -> Option<isize> {
+        if let Some(v) = self.pending {
+            self.pending = None;
+            return Some(v)
+        }
+        match self.rx.try_recv() {
+            Ok((x, y)) => {
+                self.pending = Some(y);
+                Some(x)
             }
+            Err(mpsc::TryRecvError::Empty) => {
+                None
+            }
+            _ => panic!("Read on closed pipe")
         }
     }
 }
@@ -41,11 +41,33 @@ fn main() {
         .expect("Error reading input file");
     
     let n_machine = 50;
-    let mut machines: Vec<_> = (0..n_machine).map(|i|
-        Machine{
-            state:  State::from(&input),
-            inputs: {let mut v=VecDeque::new(); v.push_back(i); v}
-        })
-        .collect();
-    println!("Part 1: {}", main_loop(&mut machines));
+    let mut txs_orig: Vec<_> = Vec::new();
+    let mut rxs: Vec<_> = Vec::new();
+    for i in 0..n_machine {
+        let (tx, rx) = channel();
+        txs_orig.push(tx);
+        let prx = PacketReceiver{id: i, rx, pending: Some(i)};
+        rxs.push(prx);
+    }
+    let mut threads = Vec::new();
+    for (i, mut rx) in rxs.into_iter().enumerate() {
+        let mut s = State::from(&input);
+        let txs = txs_orig.clone();
+        let t = thread::spawn(move || {
+            loop {
+                if let Some(packet) = s.next_numbers(3, || rx.get().or(Some(-1))).expect("engine failure") {
+                    let addr = packet[0];
+                    let x = packet[1];
+                    let y = packet[2];
+                    println!("Packet {} --> {}: ({}, {})", i, addr, x, y);
+                    if addr == 255 {panic!()}
+                    txs[addr as usize].send((x,y));
+                } else {
+                    println!("no packet for node {}", i);
+                }
+            }            
+        });
+        threads.push(t);
+    }
+    dbg!(threads.pop().unwrap().join());
 }
