@@ -1,12 +1,13 @@
 #![allow(unused)]
 
-// use std::collections::HashSet;
+use std::collections::BTreeSet;
 // use std::collections::HashMap;
 // use std::iter;
 // use day11::State; // dep: day11={path="../day11"}
 use modinverse;
 use num_bigint::{BigInt, ToBigInt};
-use num_traits::cast::ToPrimitive;
+use num_traits::cast::{ToPrimitive};
+use num_integer::{Integer};
 
 #[derive(Debug)]
 enum Shuffle {
@@ -51,27 +52,24 @@ fn do_shuffle(deck: &[u16], cmd: &Shuffle) -> Vec<u16> {
     }
 }
 
-fn next_index(deck_size: isize, cmd: &Shuffle, index: isize) -> isize {
-    let res = match cmd {
-        Shuffle::DealInc(k) => {
-            ((index.to_bigint().unwrap() * k) % &deck_size).to_isize().unwrap()
-        }
-        Shuffle::Cut(v) => {
-            let cut = if *v<0 {deck_size-v.abs()} else {*v};
-            let rest = deck_size-cut;
-            if index<cut {
-                index+rest
-            } else {
-                index-cut
-            }
-        }
-        Shuffle::DealNew => {
-            deck_size - index -1
-        }
-    };
-    assert!(res>=0 && res<deck_size);
-    res
+// All shuffle operations are linear maps (mod decksize)
+fn coefficients(cmd: &Shuffle) -> (isize, isize) {
+    match cmd {
+        Shuffle::DealInc(k) => (*k, 0),
+        Shuffle::Cut(v) => (1, -v),
+        Shuffle::DealNew => (-1, -1)
+    }
 }
+
+
+/// Return coefficients corresponding to applying first m0 and then m1
+/// 
+/// Corresponds to matrix product
+/// (a1 b1)  (a0 b0)
+/// (0   1)  (    1)
+/// 
+/// (a1*a0 a1*b0+b1)
+/// (    0        1)
 
 fn main() {
     let input = std::fs::read_to_string("input.txt")
@@ -88,77 +86,47 @@ fn main() {
     println!("Part 1: {}", idx);
 
     // Part 2
-    let n_deck = 119315717514047; 
+    // combined map
+    let (a_comb, b_comb) = cmds.iter()
+    .map(coefficients)
+    .fold(
+        (1.to_bigint().unwrap(), 0.to_bigint().unwrap()),
+        // a1, b1 is applied last
+        |(a0, b0), (a1,b1)| (a0*a1, a1*b0+b1));
+    println!("Combined map: {}*x+{}", a_comb, b_comb);
+
+    let n_deck:usize = 119315717514047; 
     let index_initial = 2020;
-    let n_repeat = 101741582076661usize;
-    //let ndeck = 10007;
+    let n_repeat:usize = 101_741_582_076_661;
+    //let n_deck:usize = 10007;
     //let index_initial = 2019;
-    println!("isize::MAX/ Deck size: {}",std::isize::MAX/n_deck);
-    // MISSING n_repeat!
-    let idx = cmds.iter().fold(index_initial, |idx, cmd| next_index(n_deck, cmd, idx));
-    println!("Part 2: {}", idx);
-}
+    //let n_repeat:usize = 5;
 
-// Reverse code is not needed -- but I realized this a bit too late...
-fn previous_index(deck_size: isize, cmd: &Shuffle, index: isize) -> isize {
-    match cmd {
-        Shuffle::DealInc(k) => {
-            // index m1 is mapped to m2 = m1*k % n
-            // Solve for m1 by chinese remainders, letting x = m1*k: 
-            // x = m2 % n
-            // x = 0  % k
-            // Given a1,a2 so that a1*n + a2*k == 1
-            // x = 0*a1*n + m2*a2*k 
-            // == m1 * k ==> m1 = m2*a2
+    let index = 
+        (index_initial.to_bigint().unwrap() * &a_comb + &b_comb) % n_deck;
+    println!("Part 2, single shuffle round: {}", (index+n_deck)%n_deck);
 
-            let n = deck_size;
-            // Cannot call egcd with BigInt as it does not have copy trait
-            let (gcd, a1, a2) = modinverse::egcd(n, *k);
-            assert_eq!(gcd, 1);
-            assert_eq!(
-                1.to_bigint().unwrap(), 
-                (a1.to_bigint().unwrap()*&n)+(a2.to_bigint().unwrap()*k)
-            );
-            let index_a2 = index.to_bigint().unwrap() * &a2; 
-            let res = (((index_a2 % n) + n) % n).to_isize().unwrap();
-            assert_eq!(res.to_bigint().unwrap() * k % n, index.to_bigint().unwrap());
-            res
+    //let mut idx=index_initial.to_bigint().unwrap();
+    //for i in 0..n_repeat { idx = (idx*&a+&b)%n_deck; }
+    //println!("part 2 naive: {}", (idx+n_deck)%n_deck);
+
+    let mut a=a_comb % n_deck;
+    let mut b=b_comb % n_deck;
+    let mut idx=index_initial.to_bigint().unwrap();
+    let mut bits=n_repeat;
+    loop {
+        if bits & 1 != 0 {
+            // println!("applying");
+            idx = (idx*&a+&b)%n_deck;
         }
-        Shuffle::Cut(v) => {
-            let cut = if *v<0 {deck_size-v.abs()} else {*v};
-            let rest = deck_size-cut;
-            if index<rest {
-                index+cut
-            } else {
-                index-rest
-            }
-        }
-        Shuffle::DealNew => {
-            deck_size - index -1
-        }
+        // println!("Bits: {}", &bits);
+        bits>>=1;
+        if bits==0 {break}
+        let b2 = b.clone()*&a+&b;
+        let a2 = a.clone()*&a;
+        a=a2 % n_deck;
+        b=b2 % n_deck;
     }
-}
+    println!("part 2: {}", (idx+n_deck)%n_deck);
 
-#[test]
-fn test_previous_index() {
-    assert_eq!(previous_index(10, &Shuffle::DealNew, 4), 5);
-    assert_eq!(previous_index(10, &Shuffle::DealNew, 0), 9);
-    assert_eq!(previous_index(10, &Shuffle::DealNew, 9), 0);
-
-    assert_eq!(previous_index(10, &Shuffle::Cut(3), 0), 3);
-    assert_eq!(previous_index(10, &Shuffle::Cut(3), 6), 9);
-    assert_eq!(previous_index(10, &Shuffle::Cut(3), 7), 0);
-    assert_eq!(previous_index(10, &Shuffle::Cut(3), 9), 2);
-
-
-    assert_eq!(previous_index(10, &Shuffle::Cut(-4), 0), 6);
-    assert_eq!(previous_index(10, &Shuffle::Cut(-4), 3), 9);
-    assert_eq!(previous_index(10, &Shuffle::Cut(-4), 4), 0);
-    assert_eq!(previous_index(10, &Shuffle::Cut(-4), 9), 5);
-
-    assert_eq!(previous_index(10, &Shuffle::DealInc(3), 0), 0);
-    assert_eq!(previous_index(10, &Shuffle::DealInc(3), 1), 7);
-    assert_eq!(previous_index(10, &Shuffle::DealInc(3), 2), 4);
-    assert_eq!(previous_index(10, &Shuffle::DealInc(3), 3), 1);
-    assert_eq!(previous_index(10, &Shuffle::DealInc(3), 4), 8);
 }
