@@ -3,6 +3,7 @@
 use std::collections::BTreeSet;
 // use std::collections::HashMap;
 use std::iter;
+use either::Either;
 // use day11::State; // dep: day11={path="../day11"}
 
 fn board_step(b: &Vec<u8>) -> (Vec<u8>, usize) {
@@ -39,10 +40,7 @@ fn print_board(b: &Vec<u8>) {
     }
 }
 
-fn main() {
-    let input = std::fs::read_to_string("input.txt")
-        .expect("Error reading input file");
-
+fn part1(input: &str) {
     let npad = 5+2;
     let board0: Vec<u8> = 
     iter::repeat(0).take(npad)
@@ -70,5 +68,124 @@ fn main() {
         }
         seen.insert(score);
     }
+}
 
+
+// Part 2 code below
+// Connection lists are constructed as iterators which 
+// turned out to be a bit clunky.
+// In retrospect, it would have been easier to build the
+// edge set once
+
+type Loc = (isize, isize, isize);
+
+// y>=x>=0, not (0, 0)
+// coords: 0,0 is center pos x/y/z: right, up, inwards
+fn base_connections(lc: &Loc) -> impl Iterator<Item=Loc> {
+    iter::once((lc.0-1, lc.1, lc.2)) //W
+    .chain(iter::once((lc.0+1, lc.1, lc.2))) //E
+    .chain(if lc.1==2 { //N
+        Either::Left(iter::once((0, 1, lc.2-1)))
+    } else {
+        Either::Right(iter::once((lc.0, lc.1+1, lc.2)))
+    })
+    .chain(if lc.0==0 && lc.1==1 { //S
+        let z = lc.2+1;
+        Either::Left((-2..=2).into_iter().map(move |x| (x, 2, z)))
+    } else {
+        Either::Right(iter::once((lc.0, lc.1-1, lc.2)))
+    })
+}
+
+#[test]
+fn test_base_connections() {
+    assert_eq!(base_connections(&(1,2,0)).count(), 4);
+    assert_eq!(base_connections(&(2,2,0)).count(), 4);
+    assert_eq!(base_connections(&(1,1,0)).count(), 4);
+    assert_eq!(base_connections(&(0,1,0)).count(), 8);
+}
+
+fn connections(lc: &Loc) -> impl Iterator<Item=Loc> {
+    let sx = if lc.0<0 {-1} else {1};
+    let sy = if lc.1<0 {-1} else {1};
+    let lcp = (lc.0*sx, lc.1*sy, lc.2);
+    let swp = lcp.0 > lcp.1;
+    if swp {Either::Left(
+        base_connections(&(lcp.1, lcp.0, lcp.2))
+        .map(|(x,y,z)| (y,x,z))
+    )} else {Either::Right(
+        base_connections(&lcp)
+    )}
+    .map(move |(x,y,z)| (x*sx, y*sy, z))
+}
+
+#[test]
+fn test_connections() {
+    assert_eq!(connections(&(1,2,0)).count(), 4);
+    assert_eq!(connections(&(2,2,0)).count(), 4);
+    assert_eq!(connections(&(1,1,0)).count(), 4);
+    assert_eq!(connections(&(0,1,0)).count(), 8);
+    assert_eq!(connections(&(0,-1,0)).count(), 8);
+    assert_eq!(connections(&(-1,0,0)).count(), 8);
+    assert_eq!(connections(&(1,0,0)).count(), 8);
+}
+
+type BugSet = BTreeSet<Loc>;
+fn step_bugs(bugs: &BugSet) -> BugSet {
+    let new_candidates: BugSet = bugs.iter()
+    .flat_map(|loc| connections(loc))
+    .collect();
+
+    let new_bugs: BugSet = new_candidates
+    .difference(bugs)
+    .filter(|loc| 
+        connections(loc)
+        .filter(|lc| bugs.contains(lc))
+        .count()==1)
+    .cloned().collect();
+    
+    let survivors: BugSet = bugs.iter()
+    .filter(|loc| {
+        let connection_count = 
+        connections(loc)
+        .filter(|lc| bugs.contains(lc))
+        .count();
+        connection_count==2 || connection_count==3
+    })
+    .cloned().collect();
+    println!("New bugs: {}, survivors: {}", new_bugs.len(), survivors.len());
+
+    new_bugs.union(&survivors).cloned().collect()
+}
+
+
+fn part2(input: &str) {
+    let mut bugs: BTreeSet<Loc> = input
+    .lines().enumerate()
+    .flat_map(|(y, ln)|
+        ln
+        .chars().enumerate()
+        .filter(|(_, c)| *c=='#')
+        .map(move |(x, _)| (x as isize, y as isize, 0)))
+    .collect();
+
+    println!("Initial bugs: {}", bugs.iter().count());
+    
+    let mut bugs200 = bugs.clone();
+    for idx in 0..200 {
+        print!("Iter {:4}: ", idx);
+        bugs200 = step_bugs(&bugs200);
+    }
+    //let bugs200 = (0..200).fold(bugs, |acc, _| step_bugs(&acc));
+    println!("Part 2: {}", bugs200.len());
+}
+
+
+fn main() {
+    let input = std::fs::read_to_string("input.txt")
+        .expect("Error reading input file");
+
+    part1(&input);
+    //dbg!(connections(&(0,1,0)).collect::<Vec<_>>());
+    part2(&input);
 }
