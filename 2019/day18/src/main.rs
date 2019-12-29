@@ -42,24 +42,53 @@ fn get_adj(map: &HashMap<Pos, char>, node: &KeyNode) -> Vec<(isize, KeyNode)> {
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
-struct HeapEntry {
+struct HeapEntry<T> {
     cost: isize,
-    value: KeyNode,
+    value: T,
 }
 
 // Reverse ordering on cost to get max value out on top
-impl cmp::Ord for HeapEntry {
-    fn cmp(&self, other: &HeapEntry) -> cmp::Ordering {
+impl<T> cmp::Ord for HeapEntry<T>
+where
+    T: cmp::Ord
+{
+    fn cmp(&self, other: &HeapEntry<T>) -> cmp::Ordering {
         other.cost.cmp(&self.cost)
-            .then_with(|| self.value.1.cmp(&other.value.1))
-            .then_with(|| self.value.0.cmp(&other.value.0))
+            .then_with(|| self.value.cmp(&other.value))
     }
 }
 
-impl cmp::PartialOrd for HeapEntry {
-    fn partial_cmp(&self, other: &HeapEntry) -> Option<cmp::Ordering> {
+impl<T> cmp::PartialOrd for HeapEntry<T>
+where
+T: cmp::Ord
+{
+    fn partial_cmp(&self, other: &HeapEntry<T>) -> Option<cmp::Ordering> {
         Some(self.cmp(other))
     }
+}
+
+/// Breath first search for shortest paths to a node where is_complete returns true
+fn bfs<T, U, V>(v0: T, get_adj: U, is_complete: V) -> Option<isize>
+where
+    T: cmp::Ord,
+    U: Fn(&T) -> Vec<(isize, T)>,
+    V: Fn(&T)->bool
+{
+    let mut open: BinaryHeap<HeapEntry<T>> = BinaryHeap::new();
+    let mut closed: BTreeMap<T, isize> = BTreeMap::new();
+    open.push(HeapEntry{cost: 0, value: v0});
+    while let Some(HeapEntry{cost, value}) = open.pop() {
+        if closed.contains_key(&value) { continue } //closed at lower cost
+        if is_complete(&value) { return Some(cost); }
+        for (dist, key_node) in get_adj(&value) {
+            let is_closed = closed.contains_key(&key_node);
+            if !is_closed {
+                open.push(HeapEntry{cost: cost+dist, value: key_node})
+            }
+        }
+        closed.insert(value, cost);
+    };
+    None
 }
 
 fn main() {
@@ -82,32 +111,17 @@ fn main() {
         .filter_map(|(p, c)| if c.is_ascii_lowercase() {Some((*c, p.clone()))} else {None})
         .collect();
     let node_ids:BTreeSet<char> = nodes.keys().cloned().collect();
-    let starts: Vec<Pos> = annotated_map
+    
+    // Part 1
+    let start: Pos = annotated_map
         .iter()
         .filter(|(_, &c)| c=='@')
         .map(|(p, _)| p)
-        .cloned()
-        .collect();
+        .next().unwrap().clone();
 
-    // Search for shortest paths in a graph with nodes of type KeyNode
-    //let mut open: BTreeMap<isize, KeyNode> = BTreeMap::new();
-    let mut open: BinaryHeap<HeapEntry> = BinaryHeap::new();
-    let mut closed: BTreeMap<KeyNode, isize> = BTreeMap::new();
-    open.push(HeapEntry{cost: 0, value: (starts[0].clone(), BTreeSet::new())});
-    while let Some(HeapEntry{cost, value}) = open.pop() {
-        if closed.contains_key(&value) { continue } //closed at lower cost
-        if node_ids.is_subset(&value.1) {
-            println!("Part 1: {}", cost);
-            break
-        }
-        for (dist, key_node) in get_adj(&annotated_map, &value) {
-            let is_closed = closed.contains_key(&key_node);
-            //println!("{:6}: from {:?} -> {:?}", if is_closed {"CLOSED"} else {"OPEN"}, &value, &key_node);
-            if !is_closed {
-                open.push(HeapEntry{cost: cost+dist, value: key_node})
-            }
-        }
-        closed.insert(value, cost);
-    }
-
+    let res = bfs(
+        (start.clone(), BTreeSet::new()),
+        |v| get_adj(&annotated_map, v),
+        |v| node_ids.is_subset(&v.1));
+    println!("Part 1: {}", res.unwrap());
 }
