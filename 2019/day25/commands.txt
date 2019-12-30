@@ -1,0 +1,44 @@
+south
+west
+take shell
+east
+east
+et
+take space heater
+inv
+west
+north
+west
+north
+take jam
+east
+south
+take asterisk
+south
+take klein bottle
+east
+take spool of cat6
+west
+north
+north
+west
+north
+take astronaut ice cream
+north
+east
+south
+take space law space brochure
+north
+north
+south
+west
+south
+south
+south
+south
+west
+drop jam
+drop shell
+drop space law space brochure
+drop spool of cat6
+inv
