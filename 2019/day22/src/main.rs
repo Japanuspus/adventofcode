@@ -1,6 +1,7 @@
 use num_bigint::ToBigInt;
 use num_bigint::{BigInt};
 use num_traits::cast::{ToPrimitive};
+use modinverse;
 // use num_integer::{Integer};
 
 #[derive(Debug)]
@@ -84,15 +85,20 @@ fn combined_map(cmds: &Vec<Shuffle>) -> Map {
         |(a0, b0), (a1,b1)| (a0*a1, a1*b0+b1))
 }
 
-fn apply_map_repeated(m: &Map, n_deck: usize,  index_initial: usize, n_repeat: usize) -> usize {
+fn map_repeated(m: &Map, n_deck: usize, n_repeat: usize) -> Map {
     let (a_comb, b_comb) = m;
+    let mut a_tot = 1.to_bigint().unwrap();
+    let mut b_tot = 0.to_bigint().unwrap();
+
     let mut a=a_comb % n_deck;
     let mut b=b_comb % n_deck;
-    let mut idx=index_initial.to_bigint().unwrap();
     let mut bits=n_repeat;
     loop {
         if bits & 1 != 0 {
-            idx = (idx*&a+&b)%n_deck;
+            let b_tot2 = b_tot.clone()*&a+&b;
+            let a_tot2 = a_tot.clone()*&a;
+            b_tot = b_tot2 % n_deck;
+            a_tot = a_tot2 % n_deck;
         }
         bits>>=1;
         if bits==0 {break}
@@ -101,7 +107,7 @@ fn apply_map_repeated(m: &Map, n_deck: usize,  index_initial: usize, n_repeat: u
         a=a2 % n_deck;
         b=b2 % n_deck;
     }
-    ((idx+n_deck)%n_deck).to_usize().unwrap()
+    (a_tot, b_tot)
 }
 
 fn apply_map(m: &Map, n_deck: usize, index_initial: usize) -> usize {
@@ -117,7 +123,7 @@ fn solve_fast(cmds: &Vec<Shuffle>, n_deck: usize, index_initial: usize) -> usize
 
 fn solve_fast_repeated(cmds: &Vec<Shuffle>, n_deck: usize, index_initial: usize, n_repeat: usize) -> usize {
     let m = combined_map(cmds);
-    apply_map_repeated(&m, n_deck, index_initial, n_repeat)
+    apply_map(&map_repeated(&m, n_deck, n_repeat), n_deck, index_initial)
 }
 
 fn solve_repeated(cmds: &Vec<Shuffle>, n_deck: usize, index_initial: usize, n_repeat: usize) -> usize {
@@ -143,12 +149,32 @@ fn main() {
     println!("Part 1 repeated 7 times: {}", solve_repeated(&cmds, 10007, 2019, 7));
     println!("Part 1 repeated 7 times: {} - fast", solve_fast_repeated(&cmds, 10007, 2019, 7));
 
-    // Part 2
+    // Part 2 -- read incorrectly
     let n_deck:usize = 119315717514047; 
-    let index_initial = 2020;
+    let index_final = 2020;
     let n_repeat:usize = 101741582076661;
 
-    println!("Part 2: {}", solve_fast_repeated(&cmds, n_deck, index_initial, n_repeat));
+    println!("Part 2 - read incorrectly: {}", solve_fast_repeated(&cmds, n_deck, index_final, n_repeat));
+
+    // Part 2
+    let m0 = combined_map(&cmds);
+    let (abig, bbig) = map_repeated(&m0, n_deck, n_repeat);
+    let a = ((abig.clone() + n_deck)%n_deck).to_usize().unwrap();
+    let b = ((bbig.clone() + n_deck)%n_deck).to_usize().unwrap();
+    let n = n_deck;
+    // Solve a*x + b = d mod n
+    //      u= a*x = d-b = a1 mod n
+    //      u= a*x = 0 mod a
+    let a1 = index_final + (n_deck - b);
+    println!("Want solution for {} * x  = {} mod {}", a, a1, n);
+    // x congruent 41685581334351 (mod 119315717514047) via wolfram alpha
+
+    // modinverse does not work for BigInt and konks out on usize...
+    let (g, _m1, m2) = modinverse::egcd(n, a);
+    assert_eq!(g, 1); // gcd a,n == 1
+
+    let res = abig * &m2 * &a1 % &n_deck;
+    let res2 = (res + &n_deck) % &n_deck;
+    println!("Part 2: {}", res2);
 }
-// Attempts 
-// 34228048460648 - too low
+
