@@ -8,4 +8,4 @@ edition = "2018"
 
 [dependencies]
 aoclib = {path="../aoclib"}
-
+itertools = "0.9"
