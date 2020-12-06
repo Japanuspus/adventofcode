@@ -1,0 +1,8 @@
+/target
+*/target
+*/*.lock
+**/*.rs.bk
+*.code-workspace
+*.lock
+*.cmd
+aoc.yaml
