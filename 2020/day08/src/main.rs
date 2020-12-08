@@ -1,6 +1,7 @@
 use anyhow::{Context, Result};
 use std::{collections::HashSet, fs};
 use parse_display::FromStr;
+use apply::Also;
 
 #[derive(Debug, FromStr, Clone, Copy)]
 #[display("{}", style = "lowercase")]
@@ -18,7 +19,7 @@ struct Instruction {
 }
 
 #[derive(Debug)]
-struct State {
+struct RegisterState {
     pc: usize,
     acc: isize,
 }
@@ -28,7 +29,7 @@ enum Flag {
     HALT,
 }
 
-impl State {
+impl RegisterState {
     fn new() -> Self {
         Self { pc: 0, acc: 0 }
     }
@@ -56,16 +57,16 @@ impl State {
     }
 }
 
-fn run_loop_check(prog: &Vec<Instruction>) -> (Option<Flag>, State) {
-    let mut state = State::new();
+fn run_loop_check(prog: &Vec<Instruction>) -> (RegisterState, Option<Flag>) {
+    let mut state = RegisterState::new();
     let mut visited: HashSet<usize> = HashSet::new();
     while visited.insert(state.pc) {
         if let Some(flag) = state.step(&prog) {
-            return (Some(flag), state);
+            return (state, Some(flag));
         }
         // println!("{:?}", state)
     }
-    (None, state)
+    (state, None)
 }
 
 fn main() -> Result<()> {
@@ -77,29 +78,20 @@ fn main() -> Result<()> {
         })
         .collect::<Result<_, _>>()?;
 
-    println!("Part 1: {}", run_loop_check(&prog).1.acc);
+    println!("Part 1: {}", run_loop_check(&prog).0.acc);
 
-    for i in 0..prog.len() {
-        let op = match &prog[i].op {
-            Operation::JMP => Operation::NOP,
-            Operation::NOP => Operation::JMP,
-            _ => continue,
-        };
-        let prog2: Vec<_> = prog
-            .iter()
-            .enumerate()
-            .map(|(ip, inst)| {
-                if ip == i {
-                    Instruction { op, arg: inst.arg }
-                } else {
-                    inst.clone()
-                }
+    println!("Part 2: {}",
+        prog.iter().enumerate()
+        .filter_map(|(i, inst)| match inst.op {
+                Operation::JMP => Some((i, Operation::NOP)),
+                Operation::NOP => Some((i, Operation::JMP)),
+                _ => None,
             })
-            .collect();
-        if let (Some(_), state) = run_loop_check(&prog2) {
-            println!("Part 2: {}", state.acc);
-        }
-    }
+        .map(|(i, op)| prog.clone().also(|v| v[i].op = op))
+        .find_map(|v| match run_loop_check(&v) {
+            (state, Some(Flag::HALT)) => Some(state.acc),
+            _ => None,
+        }).unwrap_or(0));
 
     Ok(())
 }

@@ -1,6 +1,7 @@
 [dependencies]
 anyhow = "1.0"
 parse-display = "0.4"
+apply = "0.3.0"
 
 [package]
 authors = ["Janus <janus@insignificancegalore.net>"]
