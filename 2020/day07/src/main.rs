@@ -22,13 +22,11 @@ fn parse_line(ln: &str) -> Result<RuleSpec> {
     let mut parts = ln.split(" bags contain ");
     let bag_type = parts
         .next()
-        .ok_or("no bag_type")
-        .map_err(Error::msg)?
+        .ok_or(Error::msg("no bag_type"))?
         .to_string();
     let holds = parts
         .next()
-        .ok_or("no holds")
-        .map_err(Error::msg)?
+        .ok_or(Error::msg("no holds"))?
         .split(", ")
         .filter_map(|s| {
             if s == "no other bags." {
