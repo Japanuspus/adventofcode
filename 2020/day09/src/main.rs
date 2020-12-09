@@ -24,7 +24,11 @@ fn main() -> Result<()> {
     println!("Part 2: {}", 
         iterate(
             (0,0,0),
-            |(i, j, s)| if *s<p1 {(*i, j+1, *s+input[*j])} else {(i+1, *j, *s-input[*i])} 
+            |(i, j, s)| if *s<p1 {
+                (*i, j+1, *s+input[*j])
+            } else {
+                (i+1, *j, *s-input[*i])
+            } 
         ).find(|(_, _, s)| *s==p1)
         .map(|(i, j, _)| input[i..j].iter().min().unwrap()
                     +input[i..j].iter().max().unwrap())
