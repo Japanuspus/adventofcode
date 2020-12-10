@@ -1,7 +1,7 @@
 use anyhow::Result;
 use apply::Apply;
 use itertools::Itertools;
-use std::fs;
+use std::{fs, iter::once};
 
 fn main() -> Result<()> {
     let input: Vec<_> = fs::read_to_string("input.txt")?
@@ -21,6 +21,13 @@ fn main() -> Result<()> {
             })
             .apply(|(n1, n3)| n1 * (n3 + 1))  // include diff to device
     );
+
+    let jolts: Vec<isize> = once(0)
+        .chain(input.iter().cloned())
+        .chain(input.last().map(|v| v+3))
+        .collect();
+
+    // fill possibility count starting from rear=1
 
     Ok(())
 }
