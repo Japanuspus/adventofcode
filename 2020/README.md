@@ -59,6 +59,10 @@ Was tempted to include the flag state in register state but decided to return a 
 [parse-display-derive]: https://crates.io/crates/parse-display-derive
 
 
+### Day 11
+
+Kept flip flopping between `[i16;2]` and `(i16, i16)` for coordinates, and wether to use hash directly on points or use vertex indices for the graph. Not very pretty.
+
 ## The big [`Option`](https://doc.rust-lang.org/std/option/enum.Option.html) - [`Result`](https://doc.rust-lang.org/stable/std/result/enum.Result.html) table
 
 The things I always spend the most time searching for
