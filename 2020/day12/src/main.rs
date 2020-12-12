@@ -26,8 +26,6 @@ fn main() -> Result<()> {
     #[derive(Debug)]
     struct State {x: isize, y: isize, heading: isize};
     // heading: trigs angles 90 is north, positive y, 0 is east, positive x
-    
-
     let s1 = input.iter()
     .fold(
         State{x:0, y:0, heading: 0},
@@ -48,8 +46,45 @@ fn main() -> Result<()> {
             s
         }
     );
-
     println!("Part 1: {}", s1.x.abs()+s1.y.abs());
+
+    #[derive(Debug)]
+    struct WState {x: isize, y: isize, xs: isize, ys: isize};
+    // heading: trigs angles 90 is north, positive y, 0 is east, positive x
+
+    fn rotate_wp(st: &mut WState, angle_deg: isize) {
+        // Action L means to rotate the waypoint around the ship left (counter-clockwise) the given number of degrees.
+        let angle = (angle_deg as f32)*PIOVER180;
+        let c = angle.cos() as isize;
+        let s = angle.sin() as isize;
+        let x = c*st.x - s*st.y;
+        let y = s*st.x + c*st.y;
+        st.x = x;
+        st.y = y;
+    }
+
+    let s1 = input.iter()
+    .fold(
+        WState{x:10, y:1, xs: 0, ys: 0},
+        |mut s, c| {
+            match c.cmd {
+                'N' => s.y+=c.arg, // means to move waypoint north by the given value.
+                'S' => s.y-=c.arg, // means to move waypoint south by the given value.
+                'E' => s.x+=c.arg, // means to move waypoint east by the given value.
+                'W' => s.x-=c.arg, // means to move waypoint west by the given value.
+                'L' => rotate_wp(&mut s, c.arg),
+                'R' => rotate_wp(&mut s, -c.arg),
+                'F' => {
+                    s.xs+=c.arg*s.x;
+                    s.ys+=c.arg*s.y;
+                }
+                _ => panic!("Unexpected cmd")
+            };
+            s
+        }
+    );
+    println!("Part 1: {}", s1.xs.abs()+s1.ys.abs());
+
 
     Ok(())
 }
