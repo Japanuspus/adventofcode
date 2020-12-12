@@ -63,6 +63,12 @@ Was tempted to include the flag state in register state but decided to return a 
 
 Kept flip flopping between `[i16;2]` and `(i16, i16)` for coordinates, and wether to use hash directly on points or use vertex indices for the graph. Not very pretty.
 
+### Day 12
+
+One more round of writing component-equations for vector entities. Next time I should try out [vecmath](https://crates.io/crates/vecmath) by the Piston developers, which 
+seems exactly the minimal vector functionality I need.
+
+
 ## The big [`Option`](https://doc.rust-lang.org/std/option/enum.Option.html) - [`Result`](https://doc.rust-lang.org/stable/std/result/enum.Result.html) table
 
 The things I always spend the most time searching for
