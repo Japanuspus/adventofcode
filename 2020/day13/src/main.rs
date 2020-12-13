@@ -1,80 +1,46 @@
-use std::collections::VecDeque;
+use num::BigInt;
 use std::fs;
 use anyhow::{Result, Error};
-// use itertools::Itertools;
-// use apply::Also;
-
-fn extended_euclid(a: isize, b: isize) -> (isize, isize, isize) {
-    assert!(a>b);
-    struct Row {r: isize, s: isize, t: isize};
-    let mut table: VecDeque::<Row> = VecDeque::new();
-    table.push_back(Row{r: a, s: 1, t: 0});
-    table.push_back(Row{r: b, s: 0, t: 1});
-    loop {
-        let rim1 = table.pop_front().unwrap();
-        let ri = table.front().unwrap();
-        let q = rim1.r.div_euclid(ri.r);
-        let rip1 = Row{
-            r:rim1.r - q*ri.r,
-            s:rim1.s - q*ri.s,
-            t:rim1.t - q*ri.t,
-        };
-        if rip1.r == 0 {break;};
-        
-        table.push_back(rip1);
-    };
-    let r = table.pop_front().unwrap();
-    (r.s, r.t, r.r)
-}
+use num::Integer;
 
 #[test]
 fn test_extended_euclid() {
-    // let mut dq: VecDeque::<isize> = vec![1,2];
-    let (x, y, gcd) = extended_euclid(240, 46);
-    assert_eq!(x, -9);
-    assert_eq!(y, 47);
-    assert_eq!(gcd, 2);
+    let e = isize::extended_gcd(&240, &46);
+    assert_eq!(e.x, -9);
+    assert_eq!(e.y, 47);
+    assert_eq!(e.gcd, 2);
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct RSpec{n: isize, a: isize}
+struct RSpec<T: Clone >{n: T, a: T}
 
-fn chinese_remainder(n1: &RSpec, n2: &RSpec) -> RSpec{
-    let (m1, m2, gcd) = if n1.n>n2.n {
-        extended_euclid(n1.n, n2.n)
-    } else {
-        let (m2,m1,gcd) = extended_euclid(n2.n, n1.n);
-        (m1, m2, gcd)
-    };
-    assert_eq!(gcd, 1);
-    
-    RSpec{
-        n: n1.n*n2.n, 
-        a: n1.a*m2*n2.n+n2.a*m1*n1.n
-    }
+fn chinese_remainder<T: Integer+Clone>(n1: RSpec<T>, n2: RSpec<T>) -> RSpec<T> {  
+    let ee = T::extended_gcd(&n1.n, &n2.n);
+    assert!(ee.gcd==T::one());
+    let n = n1.n.clone()*n2.n.clone();
+    let a = (n1.a*ee.y*n2.n+n2.a*ee.x*n1.n).mod_floor(&n); // rem_euclid(n);
+    RSpec{n, a}
 }
 
 #[test]
 fn test_chinese_remainder() {
-    let res=chinese_remainder(&RSpec{n: 3, a:2}, &RSpec{n: 5, a:1});
-    assert_eq!(res, RSpec{n: 15, a:-4});
-
-    let res=chinese_remainder(&RSpec{n: 5, a:1}, &RSpec{n: 3, a:2});
-    assert_eq!(res, RSpec{n: 15, a:-4});
+    let res=chinese_remainder(RSpec::<isize>{n: 3, a:2}, RSpec::<isize>{n: 5, a:1});
+    assert_eq!(res, RSpec::<isize>{n: 15, a:11});
 }
 
-fn part2(ln: &str) -> Result<isize> {
-    let specs: Vec<RSpec> = ln.split(',').enumerate()
-    .filter_map(|(i, cc)| cc.parse::<isize>().ok().map(|n| RSpec{n, a: -(i as isize)}))
+fn part2<T: Integer+Clone+std::str::FromStr+num::FromPrimitive>(ln: &str) -> Result<T> {
+    let specs: Vec<RSpec<T>> = ln.split(',').enumerate()
+    .filter_map(|(i, cc)| cc.parse::<T>().ok().map(|n| RSpec::<T>{n, a: T::from_isize(-(i as isize)).unwrap()}))
     .collect();
-    let rtot = specs[1..].iter().fold(
-        specs[0].clone(),
-        |a,b| chinese_remainder(&a, b));
-    println!("RTOT {:?}", rtot);
-    Ok(rtot.a)
+    let mut spec_iter = specs.into_iter();
+    let spec_0 = spec_iter.next().ok_or(Error::msg("No specs"))?;
+    Ok(spec_iter.fold(spec_0, move |a,b| chinese_remainder(a, b)).a)
 }
 
+#[test]
+fn test_part_2() {
+    assert_eq!(part2::<isize>("17,x,13,19").ok(), Some(3417));
+}
 
 fn main() -> Result<()> {
     let input_file = fs::read_to_string("input.txt")?;
@@ -83,12 +49,12 @@ fn main() -> Result<()> {
     let bus_ln = input.next().ok_or(Error::msg("No bus line"))?;
     let busses: Vec<isize> = bus_ln.split(',').filter_map(|cc| cc.parse::<isize>().ok()).collect();
 
-    println!("Part 1: {}",     busses.iter()
+    println!("Part 1: {}", busses.iter()
     .map(|b| (b-(dep % b), b))
     .min_by_key(|(w,_b)| *w)
     .map(|(w,b)| w*b)
     .unwrap_or(0));
 
-    println!("Part 2: {}", part2(bus_ln)?);
+    println!("Part 2: {}", part2::<BigInt>(bus_ln)?);
     Ok(())
 }
