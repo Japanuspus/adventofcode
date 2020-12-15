@@ -1,5 +1,6 @@
 use std::{collections::HashMap, fs};
 use anyhow::Result;
+use itertools::iterate;
 use std::iter::Iterator;
 
 fn part1(input: &[isize], turns: isize) -> isize {
@@ -15,9 +16,25 @@ fn part1(input: &[isize], turns: isize) -> isize {
     spoken
 }
 
+fn iter_solution(input: &[isize], turns: usize) -> usize {
+    struct State {spoken: usize, lookup: HashMap::<usize, usize>};
+    (input.len()..turns).
+     fold(
+        State{
+            spoken: input[input.len()-1] as usize,
+            lookup: input.iter().enumerate().take(input.len()-1).map(|(i, &n)| (n as usize, i+1)).collect(),
+        },
+        |mut s, n| {
+            s.spoken = s.lookup.insert(s.spoken, n).map(|old_n| n-old_n).unwrap_or(0);
+            s
+        },
+    ).spoken
+}
+
 #[test]
 fn test_part1() {
     assert_eq!(part1(&[0,3,6], 9), 4); 
+    assert_eq!(iter_solution(&[0,3,6], 9), 4); 
 }
 
 
