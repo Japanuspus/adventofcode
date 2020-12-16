@@ -18,8 +18,8 @@ fn part1(input: &[isize], turns: isize) -> isize {
 
 fn iter_solution(input: &[isize], turns: usize) -> usize {
     struct State {spoken: usize, lookup: HashMap::<usize, usize>};
-    (input.len()..turns).
-     fold(
+    (input.len()..turns)
+    .fold(
         State{
             spoken: input[input.len()-1] as usize,
             lookup: input.iter().enumerate().take(input.len()-1).map(|(i, &n)| (n as usize, i+1)).collect(),
