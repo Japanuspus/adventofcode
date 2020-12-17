@@ -67,7 +67,7 @@ mod part2 {
     type Vec3 = vecmath::Vector4<Coord>;
 
     fn directions() -> impl Iterator<Item=Vec3> {
-        (0..4).map(|_| (-1..2)).multi_cartesian_product().filter(|v| v != &[0,0,0]).map(|v| [v[0], v[1], v[2], v[3]])
+        (0..4).map(|_| (-1..2)).multi_cartesian_product().filter(|v| v != &[0,0,0,0]).map(|v| [v[0], v[1], v[2], v[3]])
     }
 
     fn neighbors(v: &Vec3) -> impl Iterator<Item=Vec3> {
