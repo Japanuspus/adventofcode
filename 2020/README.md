@@ -65,7 +65,9 @@ Kept flip flopping between `[i16;2]` and `(i16, i16)` for coordinates, and wethe
 
 ### Day 12
 
-One more round of writing component-equations for vector entities. Next time I should try out [vecmath](https://crates.io/crates/vecmath) by the Piston developers, which seems exactly the minimal vector functionality I need.
+One more round of writing component-equations for vector entities. Next time I should try out [vecmath] by the Piston developers, which seems exactly the minimal vector functionality I need.
+
+[vecmath]: https://crates.io/crates/vecmath
 
 ### Day 13
 
@@ -75,6 +77,16 @@ Started refactoring for `BigInt` before I realized that the `num-integer` crate 
 Main challenge working with the `BigInt`-objects is that I have not found how to run the mathematical operations from references, which causes a lot of clones and explicit intermediates.
 Also, there is a bit of ecosystem fragmentation, i.e. `Integer` uses `mod_floor` as opposed to `rem_euclid` in the `std`-integers.
 
+
+### Day 17
+
+Ok experience with the [vecmath] crate. Const generics would have been nice sharing code between parts 1 and 2.
+Missed opportunity for using `try_into` to go from vector to array.
+
+### Day 18
+
+Used `Regex::find_iter` as tokenizer and it worked a charm.
+Part 1 is a mess, but the recursive descend parser for part 2 came out ok.
 
 ## The big [`Option`](https://doc.rust-lang.org/std/option/enum.Option.html) - [`Result`](https://doc.rust-lang.org/stable/std/result/enum.Result.html) table
 
