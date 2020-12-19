@@ -1,3 +1,6 @@
+use std::iter::FromIterator;
+use itertools::Itertools;
+use std::collections::HashSet;
 use anyhow::Context;
 use nom::branch::alt;
 use nom::sequence::delimited;
@@ -14,20 +17,17 @@ use std::collections::HashMap;
 use std::fs;
 use anyhow::Result;
 use anyhow::Error;
-// use itertools::Itertools;
-// use parse_display::{FromStr};
-// use regex::Regex;
-// use apply::Also;
-// use num::{BigInt, Integer};
 
 #[derive(Debug)]
 enum Rule {
-    single(char),
-    rule_lists(Vec<Vec<usize>>)
+    Single(char),
+    RuleLists(Vec<Vec<usize>>)
 }
 
+type RuleMap = HashMap<usize, Rule>;
+
 #[derive(Debug)]
-struct Input<'a> {rules: HashMap<usize, Rule>, messages: Vec<&'a str>}
+struct Input<'a> {rules: RuleMap, messages: Vec<&'a str>}
 
 fn parse_number(input : &str) -> IResult<&str, usize> {
     map_res(recognize(digit1), str::parse)(input)
@@ -35,8 +35,8 @@ fn parse_number(input : &str) -> IResult<&str, usize> {
 
 fn parse_rule(s: &str) -> Result<(usize, Rule)> {
     let rule_list = separated_list1(tag(" "), parse_number);
-    let rule1 = map(separated_list1(tag(" | "), rule_list), |v| Rule::rule_lists(v));
-    let rule2 = map(delimited(char('"'), anychar, char('"')), |c| Rule::single(c)); 
+    let rule1 = map(separated_list1(tag(" | "), rule_list), |v| Rule::RuleLists(v));
+    let rule2 = map(delimited(char('"'), anychar, char('"')), |c| Rule::Single(c)); 
     let rule = alt((rule1, rule2));
     let mut line = separated_pair(parse_number, tag(": "), rule);
     let res = line(s)
@@ -55,10 +55,31 @@ fn parse(s: &str) -> Result<Input> {
     Ok(Input{rules, messages})
 }
 
+fn expand(idx: usize, rule_map: &RuleMap) -> HashSet<String> {
+    // this could have used a cache
+    match rule_map.get(&idx).unwrap() {
+        Rule::Single(c) => HashSet::from_iter(vec![c.to_string()].into_iter()),
+        Rule::RuleLists(vv) => {
+            let mut res = HashSet::new();
+            for v in vv {
+                let mut tmp = HashSet::new();
+                tmp.insert("".to_string());
+                for append in v.iter().map(|&i| expand(i, rule_map)) {
+                    tmp = tmp.iter().flat_map(|s0| append.iter().map(move |s1| [s0, s1].iter().join("") )).collect();
+                }
+                res.extend(tmp.drain())
+            }
+            res
+        }
+    }
+}
+
+
 fn main() -> Result<()> {
     let inputs = fs::read_to_string("input.txt")?;
-    let input = parse(&inputs);
- 
-    println!("Part 1: {:?}", &input);
+    let input = parse(&inputs)?;
+    let possible = expand(0, &input.rules);
+
+    println!("Part 1: possible {}, matches: {}", possible.len(), input.messages.iter().filter(|m| possible.contains(&m[..])).count());
     Ok(())
 }
