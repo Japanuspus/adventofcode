@@ -18,7 +18,7 @@ use std::fs;
 use anyhow::Result;
 use anyhow::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Rule {
     Single(char),
     RuleLists(Vec<Vec<usize>>)
@@ -55,6 +55,27 @@ fn parse(s: &str) -> Result<Input> {
     Ok(Input{rules, messages})
 }
 
+// part 2
+fn possible<'a>(idx: usize, s: &'a str, rule_map: &RuleMap) -> Vec<&'a str> {
+    if let Some(a) = s.chars().next() {
+        match rule_map.get(&idx).unwrap() {
+            Rule::Single(b) => if &a==b {vec![&s[1..]]} else {Vec::new()},
+            Rule::RuleLists(rls) => {
+                let mut res: Vec<Vec<&str>> = Vec::new();
+                for rl in rls {
+                    let mut pos: Vec::<&str> = vec![s];
+                    for rule_idx in rl {
+                        pos = pos.iter().map(|p| possible(*rule_idx, p, rule_map)).concat();
+                    }
+                    res.push(pos);
+                };
+                res.concat()
+            }
+        }
+    } else {Vec::new()}
+}
+
+// part 1
 fn expand(idx: usize, rule_map: &RuleMap) -> HashSet<String> {
     // this could have used a cache
     match rule_map.get(&idx).unwrap() {
@@ -74,12 +95,22 @@ fn expand(idx: usize, rule_map: &RuleMap) -> HashSet<String> {
     }
 }
 
-
 fn main() -> Result<()> {
     let inputs = fs::read_to_string("input.txt")?;
     let input = parse(&inputs)?;
-    let possible = expand(0, &input.rules);
 
-    println!("Part 1: possible {}, matches: {}", possible.len(), input.messages.iter().filter(|m| possible.contains(&m[..])).count());
+    // let all_possible = expand(0, &input.rules);
+    // println!("Part 1: possible {}, matches: {}", all_possible.len(), input.messages.iter().filter(|m| all_possible.contains(&m[..])).count());
+    // println!("Part 2: expand 42: {:?}", expand(42, &input.rules));
+
+    println!("Part 1 take 2: {}", input.messages.iter().filter(|m| possible(0, m, &input.rules).iter().any(|s| s.len()==0)).count());
+
+    let mut rule_map2 = input.rules.clone();
+    //8: 42 | 42 8
+    //11: 42 31 | 42 11 31
+    rule_map2.insert(8, Rule::RuleLists(vec![vec![42], vec![42, 8]]));
+    rule_map2.insert(11, Rule::RuleLists(vec![vec![42, 31], vec![42, 11, 31]]));
+    println!("Part 2 {}", input.messages.iter().filter(|m| possible(0, m, &rule_map2).iter().any(|s| s.len()==0)).count());
+
     Ok(())
 }
