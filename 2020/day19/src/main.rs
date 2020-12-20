@@ -1,6 +1,4 @@
-use std::iter::FromIterator;
 use itertools::Itertools;
-use std::collections::HashSet;
 use anyhow::Context;
 use nom::branch::alt;
 use nom::sequence::delimited;
@@ -55,7 +53,6 @@ fn parse(s: &str) -> Result<Input> {
     Ok(Input{rules, messages})
 }
 
-// part 2
 fn possible<'a>(idx: usize, s: &'a str, rule_map: &RuleMap) -> Vec<&'a str> {
     if let Some(a) = s.chars().next() {
         match rule_map.get(&idx).unwrap() {
@@ -75,39 +72,13 @@ fn possible<'a>(idx: usize, s: &'a str, rule_map: &RuleMap) -> Vec<&'a str> {
     } else {Vec::new()}
 }
 
-// part 1
-fn expand(idx: usize, rule_map: &RuleMap) -> HashSet<String> {
-    // this could have used a cache
-    match rule_map.get(&idx).unwrap() {
-        Rule::Single(c) => HashSet::from_iter(vec![c.to_string()].into_iter()),
-        Rule::RuleLists(vv) => {
-            let mut res = HashSet::new();
-            for v in vv {
-                let mut tmp = HashSet::new();
-                tmp.insert("".to_string());
-                for append in v.iter().map(|&i| expand(i, rule_map)) {
-                    tmp = tmp.iter().flat_map(|s0| append.iter().map(move |s1| [s0, s1].iter().join("") )).collect();
-                }
-                res.extend(tmp.drain())
-            }
-            res
-        }
-    }
-}
-
 fn main() -> Result<()> {
     let inputs = fs::read_to_string("input.txt")?;
     let input = parse(&inputs)?;
 
-    // let all_possible = expand(0, &input.rules);
-    // println!("Part 1: possible {}, matches: {}", all_possible.len(), input.messages.iter().filter(|m| all_possible.contains(&m[..])).count());
-    // println!("Part 2: expand 42: {:?}", expand(42, &input.rules));
-
     println!("Part 1 take 2: {}", input.messages.iter().filter(|m| possible(0, m, &input.rules).iter().any(|s| s.len()==0)).count());
 
     let mut rule_map2 = input.rules.clone();
-    //8: 42 | 42 8
-    //11: 42 31 | 42 11 31
     rule_map2.insert(8, Rule::RuleLists(vec![vec![42], vec![42, 8]]));
     rule_map2.insert(11, Rule::RuleLists(vec![vec![42, 31], vec![42, 11, 31]]));
     println!("Part 2 {}", input.messages.iter().filter(|m| possible(0, m, &rule_map2).iter().any(|s| s.len()==0)).count());
