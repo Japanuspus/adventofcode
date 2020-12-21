@@ -57,7 +57,7 @@ impl Tile {
                 r.pixels[0].clone(), //top LR
                 r.pixels.iter().map(|r| r[r.len()-1]).collect(), //right TB
                 r.pixels[r.pixels.len()-1].iter().rev().cloned().collect(), //bot RL
-                r.pixels.iter().map(|r| r[0]).collect(), //left BT
+                r.pixels.iter().rev().map(|r| r[0]).collect(), //left BT
             ]
         }
     }
