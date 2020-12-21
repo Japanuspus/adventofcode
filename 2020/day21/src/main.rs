@@ -1,21 +1,13 @@
-use std::{collections::{HashMap, HashSet}, fs, iter::repeat};
+use std::{collections::{HashMap, HashSet}, fs};
 use anyhow::Result;
-// use anyhow::Context;
-// use itertools::Itertools;
-// use parse_display::{FromStr};
+use itertools::{Itertools};
 use regex::Regex;
-// use apply::Also;
-// use num::{BigInt, Integer};
-
-//#[derive(Debug, FromStr)]
-//#[display("{key}:{value}")]
-//struct InputItem {key: String, value: String}
 
 #[derive(Debug)]
 struct Recipe<'a>{ingredients: HashSet<&'a str>, allergens: HashSet<&'a str>}
 
 fn main() -> Result<()> {
-    let input = fs::read_to_string("input_part1.txt")?;
+    let input = fs::read_to_string("input.txt")?;
 
     // input
     let mut recipes: Vec<Recipe> = Vec::new();
@@ -37,23 +29,34 @@ fn main() -> Result<()> {
     let allergens: HashSet<&str> = recipes.iter().flat_map(|r| r.allergens.iter().cloned()).collect();
     let ingredients: HashSet<&str> = recipes.iter().flat_map(|r| r.ingredients.iter().cloned()).collect();
     
-    let mut pa: HashMap<&str, HashSet<&str>> = ingredients.iter().cloned().zip(repeat(allergens.clone())).collect();
-    for r in recipes.iter() {
-        let missing_allergens: Vec<&str> = allergens.difference(&r.allergens).cloned().collect();
-        for ingr in r.ingredients.iter() {
-            let possible_allergens = pa.get_mut(ingr).unwrap();
-            for a in missing_allergens.iter() {
-                possible_allergens.remove(a);
-            }
-        }
-    }
-    for (k,v) in pa.iter() { println!("{} may contain {:?}", k, v);}
+    // each allergen can only appear in one ingredient, an ingredient can at most have one allergen
+    // map allergen to possible sources: intersection of ingr from recipes where allergen is listed
+    let possible_sources: HashMap<&str, HashSet<&str>> = allergens.iter().map(|a| (a.clone(), {
+        recipes.iter()
+        .filter(|r| r.allergens.contains(a))
+        .map(|r| &r.ingredients)
+        .fold(ingredients.clone(), |acc, ingr| acc.intersection(ingr).cloned().collect())
+    })).collect();
 
-    let safe_ingredients: HashSet<&str> = pa.iter().filter(|(_, a)| a.len()==0).map(|(ingr, _)| ingr).cloned().collect();
+    let mut ps = possible_sources.clone();
+    let mut sources: HashMap<&str, &str> = HashMap::new();
+    while let Some((&a, is)) = ps.iter().filter(|(_, v)| v.len()==1).next() {
+        let ingr: &str = is.iter().next().unwrap().clone();
+        sources.insert(a, ingr);
+        ps.remove(&a);
+        for (_, s) in ps.iter_mut() {s.remove(&ingr);}
+    }
+    assert_eq!(ps.len(), 0); // non-resolved
+    println!("Source map: {:?}", sources);
+
+    let unsafe_ingredients: HashSet<&str> = sources.iter().map(|(_, v)| v).cloned().collect();
     
-    println!("Part 1: {}, safe: {:?}", 
-        recipes.iter().map(|r| r.ingredients.intersection(&safe_ingredients).count()).sum::<usize>(),
-        safe_ingredients);
+    println!("Part 1: {}", 
+        recipes.iter().map(|r| r.ingredients.difference(&unsafe_ingredients).count()).sum::<usize>());
+
+    // part 2 was accidentally solved above...
+    println!("Part 2: {}", 
+        allergens.iter().sorted().map(|a| sources.get(a).unwrap()).join(","));
 
     Ok(())
 }
