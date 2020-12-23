@@ -16,6 +16,30 @@ fn unwrap_pointers(ps: &[P], cur: P) -> Vec<P> {
     panic!("Loop while unfolding, cur={}:\n 0, 1, 2, 3, 4, 5, 6, 7, 8, 9\n{:?}", cur, &ps[..10]);
 }
 
+fn crab_step(pointers: &mut [P], cur: P) -> P {
+    let n = pointers.len()-1;
+    // take out three
+    let t0 = pointers[cur as usize]; // first taken out
+    let t1 = pointers[t0 as usize]; // first taken out
+    let t2 = pointers[t1 as usize]; // first taken out
+    let ts: HashSet<P> = [t0, t1, t2].iter().cloned().collect();
+
+    pointers[cur as usize] = pointers[t2 as usize];
+    
+    // destination: reduce value of cur by 1 until valid
+    let mut dst = if cur>1 {cur-1} else {n as P};  //labels are 1..(n+1) included
+    while ts.contains(&dst) {
+        dst = if dst>1 {dst-1} else {n as P};  //labels are 1..(n+1) included
+    }
+
+    // insert ts
+    pointers[t2 as usize] = pointers[dst as usize];
+    pointers[dst as usize] = t0;
+
+    // update cur
+    pointers[cur as usize]
+}
+
 fn part1(input: &str) {
     let init: Vec<P> = input.trim().chars().map(|c| c.to_digit(10).unwrap() as P).collect();
     let n = init.len();
@@ -30,27 +54,7 @@ fn part1(input: &str) {
     println!("Input: {}, as pointer: {:?}", input, unwrap_pointers(&pointers, cur));
 
     for idx in 0..100 {
-        // take out three
-        let t0 = pointers[cur as usize]; // first taken out
-        let t1 = pointers[t0 as usize]; // first taken out
-        let t2 = pointers[t1 as usize]; // first taken out
-        let ts: HashSet<P> = [t0, t1, t2].iter().cloned().collect();
-
-        pointers[cur as usize] = pointers[t2 as usize];
-        
-        // destination: reduce value of cur by 1 until valid
-        let mut dst = if cur>1 {cur-1} else {n as P};  //labels are 1..(n+1)
-        while ts.contains(&dst) {
-            dst = if dst>1 {dst-1} else {n as P};  //labels are 1..(n+1)
-        }
-
-        // insert ts
-        pointers[t2 as usize] = pointers[dst as usize];
-        pointers[dst as usize] = t0;
-
-        // update cur
-        cur = pointers[cur as usize];
-
+        cur = crab_step(&mut pointers, cur);
         //println!("Round {}: {:?} - current: {}", idx, unwrap_pointers(&pointers, cur), &cur);
     }
     println!("From 1: {:?}", &unwrap_pointers(&pointers, 1));
@@ -71,26 +75,7 @@ fn part2(input: &str) {
     let mut cur = init[0];
 
     for _ in 0..10_000_000 {
-        // take out three
-        let t0 = pointers[cur as usize]; // first taken out
-        let t1 = pointers[t0 as usize]; // first taken out
-        let t2 = pointers[t1 as usize]; // first taken out
-        let ts: HashSet<P> = [t0, t1, t2].iter().cloned().collect();
-
-        pointers[cur as usize] = pointers[t2 as usize];
-        
-        // destination: reduce value of cur by 1 until valid
-        let mut dst = if cur>1 {cur-1} else {n as P};  //labels are 1..(n+1) included
-        while ts.contains(&dst) {
-            dst = if dst>1 {dst-1} else {n as P};  //labels are 1..(n+1) included
-        }
-
-        // insert ts
-        pointers[t2 as usize] = pointers[dst as usize];
-        pointers[dst as usize] = t0;
-
-        // update cur
-        cur = pointers[cur as usize];
+        cur = crab_step(&mut pointers, cur);
     }
     let v = unwrap_pointers(&pointers, 1);
     println!("From 1: {:?} -> {}", &v[..3], (v[1] as usize)*(v[2] as usize));
