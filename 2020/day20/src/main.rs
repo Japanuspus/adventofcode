@@ -2,7 +2,7 @@
 
 use anyhow::Result;
 // use apply::Apply;
-use itertools::Itertools;
+use itertools::{Itertools, iterate};
 use nom::bytes::complete::tag;
 use nom::character::complete::{digit1, one_of};
 use nom::combinator::{map, map_res, recognize};
@@ -11,16 +11,30 @@ use nom::sequence::{delimited, separated_pair};
 use nom::{character::complete::multispace1, Finish, IResult};
 use std::{collections::HashSet, fs};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct RawTile {
     id: usize,
     pixels: Vec<Vec<bool>>,
 }
 
-#[derive(Debug, Clone)]
-struct Tile {
-    id: usize,
-    sides: [Vec<bool>; 4], //clockwise from top
+fn transpose_vectors<T>(mut vectors: Vec<Vec<T>>) -> Vec<Vec<T>> {
+    let mut res = Vec::new();
+    let mut iters = vectors.iter_mut().map(|v| v.drain(..)).collect::<Vec<_>>();
+    while let Some(v) = iters.iter_mut().map(|i| i.next()).collect() {
+        res.push(v);
+    }
+    res
+}
+
+impl RawTile {
+    fn flip(&mut self) {
+        self.pixels.reverse();
+    }
+
+    fn rotate(&mut self) { 
+        self.pixels = transpose_vectors(self.pixels.clone());
+        self.flip();  
+    }
 }
 
 fn parse_number(input: &str) -> IResult<&str, usize> {
@@ -53,43 +67,26 @@ fn parse_raw_tiles(s: &str) -> Result<Vec<RawTile>> {
     Ok(res?)
 }
 
+#[derive(Debug, Clone)]
+struct Tile {
+    id: usize,
+    pixels: Vec<Vec<bool>>, // includes edges
+    sides: [Vec<bool>; 4], //clockwise from top
+}
+
 impl Tile {
-    fn new(r: &RawTile) -> Self {
+    fn new(r: RawTile) -> Self {
+        let sides = [
+            r.pixels[0].clone(),                                          //top LR
+            r.pixels.iter().map(|r| r[r.len() - 1]).collect(),            //right TB
+            r.pixels[r.pixels.len() - 1].iter().rev().cloned().collect(), //bot RL
+            r.pixels.iter().rev().map(|r| r[0]).collect(),                //left BT
+        ];
         Self {
             id: r.id,
-            sides: [
-                r.pixels[0].clone(),                                          //top LR
-                r.pixels.iter().map(|r| r[r.len() - 1]).collect(),            //right TB
-                r.pixels[r.pixels.len() - 1].iter().rev().cloned().collect(), //bot RL
-                r.pixels.iter().rev().map(|r| r[0]).collect(),                //left BT
-            ],
+            pixels: r.pixels,
+            sides,
         }
-    }
-
-    fn rotate_cw(&mut self) {
-        self.sides.rotate_right(1);
-    }
-
-    fn flip(&mut self) {
-        self.sides.reverse();
-        for s in self.sides.iter_mut() {
-            s.reverse();
-        }
-    }
-
-    fn all(mut self) -> Vec<Self> {
-        let mut v: Vec<Tile> = (0..4)
-            .scan((), |_, _| {
-                self.rotate_cw();
-                Some(self.clone())
-            })
-            .collect();
-        self.flip();
-        v.extend((0..4).scan((), |_, _| {
-            self.rotate_cw();
-            Some(self.clone())
-        }));
-        v
     }
 
     /// other matches in direction from self
@@ -101,6 +98,19 @@ impl Tile {
             .zip(other.sides[(direction + 2) % 4].iter())
             .all(|(&a, &b)| a == b)
     }
+}
+
+fn all_symmetric(r: &RawTile) -> Vec<Tile> {
+    let mut v: Vec<Tile> = Vec::new();
+    let mut buf = r.clone();
+    for _ in 0..2 {
+        for _ in 0..4 {
+            v.push(Tile::new(buf.clone()));
+            buf.rotate(); 
+        }
+        buf.flip();
+    };
+    v
 }
 
 struct Game {
@@ -153,9 +163,6 @@ fn solve_rec<'a>(game: &'a Game, board: &mut Vec<&'a Tile>) -> Vec<Vec<&'a Tile>
         let mut res = Vec::new();
         let pos = possible_tiles(game, &board);
 
-        // println!("*** {} Tiles on board, possible: {}", board.len(), pos.len());
-        // for t in board.iter() {print_tile(t);}
-
         for p in pos {
             board.push(p);
             res.extend(solve_rec(game, board));
@@ -172,7 +179,7 @@ fn check_game(game: &Game) {
             println!("{:?}", t);
         }
     }
-    assert!(game.tiles[0].matches(&game.tiles[5], 0));
+    assert!(game.tiles[0].matches(&game.tiles[4], 0));
 }
 
 fn main() -> Result<()> {
@@ -183,7 +190,7 @@ fn main() -> Result<()> {
         n2: raw_tiles.len(),
         n: (raw_tiles.len() as f64).sqrt() as usize,
         ns: raw_tiles[0].pixels.len(),
-        tiles: raw_tiles.iter().map(Tile::new).map(|t| t.all()).concat(),
+        tiles: raw_tiles.iter().map(|t| all_symmetric(t)).concat(),
     };
     assert_eq!(game.tiles.len(), raw_tiles.len() * 8);
     check_game(&game);
