@@ -31,11 +31,9 @@ fn main() -> Result<()> {
     let pub_keys: Vec<usize> = input.lines().map(|ln| ln.parse::<usize>()).collect::<Result<_,_>>()?;
     
     let loop_size: Vec<usize> = pub_keys.iter().map(|k| brute_loop_size(*k)).collect();
-
     let enc1 = enc_key(pub_keys[0], loop_size[1]);
-    let enc2 = enc_key(pub_keys[1], loop_size[0]);
 
-    println!("Part 1: {} == {}", enc1, enc2);
+    println!("Part 1: {}", enc1);
 
     Ok(())
 }
