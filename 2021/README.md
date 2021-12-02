@@ -41,7 +41,7 @@ First, define display form of inputs:
 
 And then parse as
 
-    let input: Vec<Step> = input_s
+    let input: Vec<Step> = fs::read_to_string("input.txt")?
         .split("\n")
         .map(|s| s.parse())
         .collect::<Result<_,_>>()?;
