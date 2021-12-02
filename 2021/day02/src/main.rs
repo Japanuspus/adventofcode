@@ -20,11 +20,10 @@ struct Step {
 }
 
 fn main() -> Result<()> {
-    let input_s = fs::read_to_string("input.txt")?;
-    let input: Vec<Step> = input_s
+    let input: Vec<Step> = fs::read_to_string("input.txt")?
         .split("\n")
-        .filter_map(|s| s.parse().ok())
-        .collect();
+        .map(|s| s.parse())
+        .collect::<Result<_,_>>()?;
 
     let mut x = 0i32;
     let mut y = 0i32;
