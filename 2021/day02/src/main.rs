@@ -1,14 +1,12 @@
-use anyhow::Result;
+use anyhow::{Result, Context};
 use std::fs;
 use parse_display::{Display, FromStr};
 
 #[derive(Display, FromStr, PartialEq, Debug)]
+#[display(style="lowercase")]
 enum Direction {
-    #[display("forward")]
     Forward,
-    #[display("down")]
     Down,
-    #[display("up")]
     Up,
 }
 
@@ -22,7 +20,8 @@ struct Step {
 fn main() -> Result<()> {
     let input: Vec<Step> = fs::read_to_string("input.txt")?
         .split("\n")
-        .map(|s| s.parse())
+        .filter(|s| s.len()>0)
+        .map(|s| s.parse().with_context(|| format!("Failed to parse >{}<", s)))
         .collect::<Result<_,_>>()?;
 
     let mut x = 0i32;
