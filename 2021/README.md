@@ -45,3 +45,27 @@ And then parse as
         .split("\n")
         .map(|s| s.parse())
         .collect::<Result<_,_>>()?;
+
+
+## Day 3
+
+Was in doubt about the choise of `Vec<Vec<bool>>` as input datastructure -- would this have been a good day to play with `ndarray`?
+Still, part 2 came out ok, although it probably has a massive bounds checking overhead:
+
+    fn bit_rate(v: &Vec<Vec<bool>>, tgt: bool) -> &Vec<bool> {
+        let mut buf: Vec<&Vec<bool>> = v.iter().collect();
+        let mut idx = 0usize;
+        while buf.len()>1 {
+            let count: isize = buf.iter().filter(|r| r[idx]==tgt).count() as isize;
+            let rem = (buf.len() as isize) - count;
+            let mark = if count == rem {tgt} else {count>rem};
+            buf = buf.into_iter().filter(|r| r[idx]==mark).collect();
+            idx+=1;
+        }
+        buf[0]
+    }
+
+My natural tendency is totally towards loop with external mutable state. But I did use `fold` for the bit vector decoding...
+
+    v.iter().fold(0, |s, &c| (s<<1)+if c {1} else {0})
+

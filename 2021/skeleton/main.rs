@@ -17,7 +17,9 @@ use std::fs;
 // }
 
 fn main() -> Result<()> {
-    let input: Vec<i32> = fs::read_to_string("input.txt")?
+    let input_s = fs::read_to_string("input.txt")?;
+    let input: Vec<i32> = input_s
+        .trim()
         .split("\n")
         .map(|s| s.parse())
         .collect::<Result<_,_>>()?;
