@@ -5,80 +5,75 @@ use std::collections::HashSet;
 
 
 struct Board {
-    rows: Vec<Vec<u8>>,
     lines: Vec<HashSet<u8>>,
 }
 
 impl Board {
-    fn new(rows: Vec<Vec<u8>>) -> Self {
+    fn new(rows: &Vec<Vec<u8>>) -> Self {
         let n = rows[0].len();
         let cols: Vec<Vec<_>> = (0..n).map(|i| rows.iter().map(|row| row[i]).collect()).collect();
         let lines: Vec<HashSet<_>> = cols.iter().chain(rows.iter()).map(|v| v.iter().cloned().collect()).collect();
-        Self {rows, lines}
+        Self {lines}
     }
 
-    fn has_match(&self, drawn: &HashSet<u8>) -> bool {
-        self.lines.iter().filter(|line| drawn.is_superset(line)).next().is_some()
+    fn has_line(&self) -> bool {
+        self.lines.iter().filter(|line| line.len()==0).next().is_some()
     }
-}
 
-fn find_board<'a>(boards: &'a Vec<Board>, draws: &Vec<u8>) -> Option<(usize, &'a Board)> {
-    let mut drawn: HashSet<u8> = HashSet::new();
-    for (i_draw, d) in draws.iter().cloned().enumerate() {
-        drawn.insert(d);
-        for board in boards.iter() {
-            if board.has_match(&drawn) {
-                return Some((i_draw, board));
-            }
-        }   
-    }
-    None
-}
-
-fn find_last_board<'a>(boards: &'a Vec<Board>, draws: &Vec<u8>) -> Option<(usize, &'a Board)> {
-    let mut drawn: HashSet<u8> = HashSet::new();
-    let mut rboards: Vec<&Board> = boards.iter().collect_vec();
-
-    for (i_draw, d) in draws.iter().cloned().enumerate() {
-        drawn.insert(d);
-        let new_boards = rboards.iter().cloned().filter(|b| !b.has_match(&drawn)).collect_vec();
-        if new_boards.len()==0 {
-            if rboards.len()>1 {
-                panic!("More than one board gone in last round");
-            }
-            return Some((i_draw, rboards[0]));
+    fn mark(&mut self, v: u8) {
+        for line in self.lines.iter_mut() {
+            line.remove(&v);
         }
-        rboards=new_boards;
     }
-    None
-}
 
-fn score_board(draws: &Vec<u8>, draw_board: (usize, &Board)) -> usize {
-    let board = draw_board.1;
-    let picked = draws.iter().take(draw_board.0+1).cloned().collect::<HashSet<_>>();
-    let last_pick = draws[draw_board.0];
-    let board_all = board.rows.iter().flat_map(|r| r.iter()).cloned().collect::<HashSet<_>>();
-    (last_pick as usize) * board_all.difference(&picked).map(|v| *v as usize).sum::<usize>()
+    fn sum_unmarked(&self) -> usize {
+        self.lines.iter().flat_map(|line| line.iter()).map(|v| *v as usize).sum::<usize>()/2
+    }
 }
 
 fn main() -> Result<()> {
     let input_s = fs::read_to_string("input.txt")?;
     let mut ii = input_s.trim().split("\n\n");
     let draws: Vec<u8> = ii.next().unwrap().split(",").map(|s| s.parse()).collect::<Result<_,_>>()?;
-    let boards: Vec<Board> = ii
+    let board_vectors: Vec<Vec<Vec<u8>>> = ii
         .map(|b| {
-            b
-            .split("\n").map(|ln| {
+            b.split("\n").map(|ln| {
                 ln.split_whitespace().map(|s| s.parse()).collect::<Result<_,_>>()
-            })
-            .collect::<Result<_,_>>()
-            .and_then(|vv| Ok(Board::new(vv)))
+            }).collect::<Result<_,_>>()
         }).collect::<Result<_,_>>()?;
-    println!("inputs: {}, {}", draws.len(), boards.len());
+    println!("inputs: {}, {}", draws.len(), board_vectors.len());
 
-    let draw_board = find_board(&boards, &draws).unwrap();
-    println!("Part 1: {}", score_board(&draws, draw_board));
+    // Part 1
+    let mut boards = board_vectors.iter().map(|b| Board::new(b)).collect_vec();
+    for d in draws.iter() {
+        for b in boards.iter_mut() { b.mark(*d); }
+        if let Some(b) = boards.iter().filter(|b| b.has_line()).next() {
+            println!("Part 1: {}", (*d as usize)*b.sum_unmarked());
+            break;
+        }
+    }
 
-    println!("Part 2: {}", score_board(&draws, find_last_board(&boards, &draws).unwrap()));
+    // Part 2
+    let mut boards = board_vectors.iter().map(|b| Board::new(b)).collect_vec();
+    for d in draws.iter() {
+        for b in &mut boards {b.mark(*d)}
+        // on unstable, https://doc.rust-lang.org/std/vec/struct.Vec.html#method.drain_filter
+        // let winning_boards = boards.drain_filter(|b| b.has_line()).collect_vec();
+        let mut winning_boards: Vec<Board> = Vec::new();
+        let mut i = 0;
+        while i < boards.len() {
+            if boards[i].has_line() {
+                winning_boards.push(boards.remove(i));
+            } else {
+                i += 1;
+            }
+        };
+        // end of drain_filter
+        if boards.len()==0 {
+            println!("Part 2: {}", (*d as usize)*winning_boards[0].sum_unmarked());
+            break;
+        };
+    }
+
     Ok(())
-}    
+}
