@@ -1,31 +1,11 @@
-use anyhow::{Result}; //, Error, anyhow};
+use anyhow::{Result};
+use itertools::Itertools;
 use std::fs;
 use std::collections::HashSet;
-
-// use parse_display::{Display, FromStr};
-
-// #[derive(Display, FromStr, PartialEq, Debug)]
-// enum Direction {
-//     #[display("forward")]
-//     Forward,
-// }
-
-// #[derive(Debug, FromStr)]
-// #[display("{direction} {distance}")]
-// struct Step {
-//     direction: Direction,
-//     distance: i32,
-// }
-
-// struct Line {
-//     board: isize,
-//     members: HashSet<u8>,
-// }
 
 
 struct Board {
     rows: Vec<Vec<u8>>,
-    cols: Vec<Vec<u8>>,
     lines: Vec<HashSet<u8>>,
 }
 
@@ -34,23 +14,51 @@ impl Board {
         let n = rows[0].len();
         let cols: Vec<Vec<_>> = (0..n).map(|i| rows.iter().map(|row| row[i]).collect()).collect();
         let lines: Vec<HashSet<_>> = cols.iter().chain(rows.iter()).map(|v| v.iter().cloned().collect()).collect();
-        Self {rows, cols, lines}
+        Self {rows, lines}
+    }
+
+    fn has_match(&self, drawn: &HashSet<u8>) -> bool {
+        self.lines.iter().filter(|line| drawn.is_superset(line)).next().is_some()
     }
 }
 
-fn find_board(boards: &Vec<Board>, draws: &Vec<u8>) -> Option<(usize, usize)> {
+fn find_board<'a>(boards: &'a Vec<Board>, draws: &Vec<u8>) -> Option<(usize, &'a Board)> {
     let mut drawn: HashSet<u8> = HashSet::new();
     for (i_draw, d) in draws.iter().cloned().enumerate() {
         drawn.insert(d);
-        for (i, board) in boards.iter().enumerate() {
-            for line in board.lines.iter() {
-                if drawn.is_superset(line) {
-                    return Some((i_draw, i));
-                }
+        for board in boards.iter() {
+            if board.has_match(&drawn) {
+                return Some((i_draw, board));
             }
         }   
     }
     None
+}
+
+fn find_last_board<'a>(boards: &'a Vec<Board>, draws: &Vec<u8>) -> Option<(usize, &'a Board)> {
+    let mut drawn: HashSet<u8> = HashSet::new();
+    let mut rboards: Vec<&Board> = boards.iter().collect_vec();
+
+    for (i_draw, d) in draws.iter().cloned().enumerate() {
+        drawn.insert(d);
+        let new_boards = rboards.iter().cloned().filter(|b| !b.has_match(&drawn)).collect_vec();
+        if new_boards.len()==0 {
+            if rboards.len()>1 {
+                panic!("More than one board gone in last round");
+            }
+            return Some((i_draw, rboards[0]));
+        }
+        rboards=new_boards;
+    }
+    None
+}
+
+fn score_board(draws: &Vec<u8>, draw_board: (usize, &Board)) -> usize {
+    let board = draw_board.1;
+    let picked = draws.iter().take(draw_board.0+1).cloned().collect::<HashSet<_>>();
+    let last_pick = draws[draw_board.0];
+    let board_all = board.rows.iter().flat_map(|r| r.iter()).cloned().collect::<HashSet<_>>();
+    (last_pick as usize) * board_all.difference(&picked).map(|v| *v as usize).sum::<usize>()
 }
 
 fn main() -> Result<()> {
@@ -69,12 +77,8 @@ fn main() -> Result<()> {
     println!("inputs: {}, {}", draws.len(), boards.len());
 
     let draw_board = find_board(&boards, &draws).unwrap();
-    let board = &boards[draw_board.1];
-    let picked = draws.iter().take(draw_board.0+1).cloned().collect::<HashSet<_>>();
-    let last_pick = draws[draw_board.0];
-    let board_all = board.rows.iter().flat_map(|r| r.iter()).cloned().collect::<HashSet<_>>();
-    let p1: usize = (last_pick as usize) * board_all.difference(&picked).map(|v| *v as usize).sum::<usize>();
-    println!("Part 1: {}", p1);
-    //println!("Part 2: {}", input.len());
+    println!("Part 1: {}", score_board(&draws, draw_board));
+
+    println!("Part 2: {}", score_board(&draws, find_last_board(&boards, &draws).unwrap()));
     Ok(())
 }    
