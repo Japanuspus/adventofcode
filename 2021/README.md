@@ -69,3 +69,14 @@ My natural tendency is totally towards loop with external mutable state. But I d
 
     v.iter().fold(0, |s, &c| (s<<1)+if c {1} else {0})
 
+
+## Day 4
+
+First part 1 implementation was nester for loops checking for subsets.
+Then changed everything to have mutable board implementation.
+
+The nicer take would have been to map from drawn numbers to `(&board, line_idx)` and then count up number of matches.
+
+## Day 5
+
+Almost tempted for `ndarray`, but `HashMap<(i32, i32), usize>` was super. 

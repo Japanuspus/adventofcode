@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Result, Context};
 use std::fs;
 
 // use parse_display::{Display, FromStr};
@@ -9,7 +9,7 @@ use std::fs;
 //     Forward,
 // }
 
-// #[derive(Debug, FromStr)]
+// #[derive(Debug, Display, FromStr)]
 // #[display("{direction} {distance}")]
 // struct Step {
 //     direction: Direction,
@@ -21,7 +21,7 @@ fn main() -> Result<()> {
     let input: Vec<i32> = input_s
         .trim()
         .split("\n")
-        .map(|s| s.parse())
+        .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
         .collect::<Result<_,_>>()?;
 
     println!("Part 1: {}", input.len());
