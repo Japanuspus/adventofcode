@@ -1,9 +1,5 @@
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use std::fs;
-
-fn tri(v: i64) -> i64 {
-    v*(v+1)/2
-}
 
 fn main() -> Result<()> {
     let input_s = fs::read_to_string("input.txt")?;
@@ -11,14 +7,28 @@ fn main() -> Result<()> {
         .trim()
         .split(",")
         .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
-        .collect::<Result<_,_>>()?;
+        .collect::<Result<_, _>>()?;
 
     let x1 = input.iter().min().unwrap();
     let x2 = input.iter().max().unwrap();
-    let xp1 = (*x1..*x2).map(|x| (input.iter().map(|c| (c-x).abs()).sum::<i64>(), x)).min().unwrap();
-    println!("Part 1: {}", xp1.0);
+    let p1 = (*x1..=*x2)
+        .map(|x| input.iter().map(|c| (c - x).abs()).sum::<i64>())
+        .min()
+        .unwrap();
+    println!("Part 1: {}", p1);
 
-    let xp2 = (*x1..*x2).map(|x| (input.iter().map(|c| tri((c-x).abs())).sum::<i64>(), x)).min().unwrap();
-    println!("Part 2: {}", xp2.0);
+    let p2 = (*x1..=*x2)
+        .map(|x| {
+            input
+                .iter()
+                .map(|c| {
+                    let n = (c - x).abs();
+                    n * (n + 1) / 2
+                })
+                .sum::<i64>()
+        })
+        .min()
+        .unwrap();
+    println!("Part 2: {}", p2);
     Ok(())
-}    
+}
