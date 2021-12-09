@@ -1,21 +1,25 @@
-use anyhow::{Result, Context};
+use anyhow::{Result};
+use itertools::Itertools;
 use std::fs;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-// use parse_display::{Display, FromStr};
-
-// #[derive(Display, FromStr, PartialEq, Debug)]
-// enum Direction {
-//     #[display("forward")]
-//     Forward,
-// }
-
-// #[derive(Debug, Display, FromStr)]
-// #[display("{direction} {distance}")]
-// struct Step {
-//     direction: Direction,
-//     distance: i32,
-// }
+fn fill_size(map: &HashMap<(i32, i32), i8>, locval: ((i32, i32), i8)) -> usize {
+    let dirs: [(i32, i32);4] = [(-1,0), (0, 1), (1, 0), (0, -1)];
+    let mut visited: HashSet<(i32, i32)> = HashSet::new();
+    let mut work: Vec<((i32, i32), i8)> = vec![locval];
+    while let Some((loc, v)) = work.pop() {
+        for d in dirs.iter() {
+            let loc2 = (d.0+loc.0, d.1+loc.1);
+            if let Some(v2) = map.get(&loc2) {
+                if !visited.contains(&loc2) && v2>&v && *v2<9i8 {
+                    work.push((loc2, *v2))
+                }
+            }
+        }
+        visited.insert(loc);
+    }
+    visited.len()
+}
 
 fn solution(input_s: &str) -> Result<()> {
     let input: Vec<Vec<i8>> = input_s
@@ -30,7 +34,7 @@ fn solution(input_s: &str) -> Result<()> {
 
     let dirs: [(i32, i32);4] = [(-1,0), (0, 1), (1, 0), (0, -1)];
 
-    let p1: usize = map.iter()
+    let lows: Vec<((i32, i32), i8)>= map.iter()
     .filter(|(loc, val)| {
         dirs
         .iter()
@@ -40,26 +44,16 @@ fn solution(input_s: &str) -> Result<()> {
             .and_then(|val_n| Some(val_n>val))
         })
         .all(|b| b)
-    })
-    .map(|(loc, val)| {
-        //println!("{:?}", loc);
-        1+(*val as usize)
-    })
-    .sum();
+    }).map(|(loc, val)| (*loc, *val)).collect();
+    let p1: usize = lows.iter().map(|(_loc, val)| 1+(*val as usize)).sum();
 
+    let bsize: Vec<usize> = lows.iter().map(|lv| fill_size(&map, *lv)).sorted().collect();
+    let p2: usize = bsize[(bsize.len()-3)..].iter().product();
 
     println!("Part 1: {}", p1);
-    println!("Part 2: {}", 0);
+    println!("Part 2: {}", p2);
     Ok(())
 }
-
-// #[test]
-// fn test_solution() -> Result<()> {
-//     let (a, b) = solution(&fs::read_to_string("test00.txt")?)?;
-//     assert!(a==1);
-//     assert!(b==0);
-//     Ok(())
-// }
 
 fn main() -> Result<()> {
     solution(&fs::read_to_string("test00.txt")?)?;
