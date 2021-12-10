@@ -16,8 +16,7 @@ use std::fs;
 //     distance: i32,
 // }
 
-fn main() -> Result<()> {
-    let input_s = fs::read_to_string("input.txt")?;
+fn solution(input_s: &str) -> Result<()> {
     let input: Vec<i32> = input_s
         .trim()
         .split("\n")
@@ -25,6 +24,14 @@ fn main() -> Result<()> {
         .collect::<Result<_,_>>()?;
 
     println!("Part 1: {}", input.len());
-    println!("Part 2: {}", input.len());
+    println!("Part 2: {}", 0);
     Ok(())
-}    
+}
+
+fn main() -> Result<()> {
+    println!("** TEST **");
+    solution(&fs::read_to_string("test00.txt")?)?;
+    println!("\n** INPUT **");
+    solution(&fs::read_to_string("input.txt")?)?;
+    Ok(())
+}

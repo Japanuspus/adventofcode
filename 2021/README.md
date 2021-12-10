@@ -78,5 +78,13 @@ Then changed everything to have mutable board implementation.
 The nicer take would have been to map from drawn numbers to `(&board, line_idx)` and then count up number of matches.
 
 ## Day 5
-
 Almost tempted for `ndarray`, but `HashMap<(i32, i32), usize>` was super. 
+
+## Day 8
+
+Very clunky solution using `BTreeSet`s. Was surprised that `BTreeSet` has no in-place set operations. Should have probably stayed with initial thought of using bit vectors.
+
+Also: complete missed the clever solution of mapping activation groups directly to digits, skipping the step of mapping segments to segments.
+
+## Day 9
+Another good day for `HashMap<(i32, i32), _>`.
