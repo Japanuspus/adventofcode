@@ -1,4 +1,4 @@
-use anyhow::{Result, Context};
+use anyhow::{Result};
 use std::{fs, collections::{HashMap, HashSet}};
 
 #[derive(Debug)]
@@ -28,6 +28,12 @@ struct Route <'a> {
 impl <'a> Route <'a> {
     fn new(at: &'a str) -> Self {
         Route{at, visited: HashSet::new()}
+    }
+
+    fn goto(&self, dst: &'a str) -> Self {
+        Self{
+            at: dst, visited: self.visited.clone(), 
+        }
     }
 }
 
@@ -72,7 +78,7 @@ fn solution(input_s: &str) -> Result<()> {
         //println!("R: {:?}\nRoutes: {:?}", &r, &routes);
         let a = caves.get(r.at).unwrap();
         if a.is_end {
-            println!("Finished route: {:?}", r);
+            //println!("Finished route: {:?}", r);
             p1+=1;
             continue;
         }
@@ -82,7 +88,7 @@ fn solution(input_s: &str) -> Result<()> {
                 if r.visited.contains(&dst[..]) {
                     None
                 } else {
-                    Some(Route{at: dst, visited: r.visited.clone()})
+                    Some(r.goto(dst))
                 } )
         );
     }
@@ -94,7 +100,7 @@ fn solution(input_s: &str) -> Result<()> {
         //println!("R: {:?}\nRoutes: {:?}", &r, &routes);
         let a = caves.get(r.at).unwrap();
         if a.is_end {
-            println!("Finished route: {:?}", r);
+            //println!("Finished route: {:?}", r);
             p2+=1;
             continue;
         }
