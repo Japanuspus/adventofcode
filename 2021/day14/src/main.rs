@@ -1,13 +1,6 @@
 use anyhow::{Result, Context};
-use std::{fs, collections::HashMap, iter::once};
-
+use std::{fs, collections::HashMap};
 use parse_display::{Display, FromStr};
-
-// #[derive(Display, FromStr, PartialEq, Debug)]
-// enum Direction {
-//     #[display("forward")]
-//     Forward,
-// }
 
 #[derive(Debug, Display, FromStr)]
  #[display("{a}{b} -> {c}")]
@@ -17,7 +10,6 @@ struct Rule {
     b: char,
     c: char,
 }
-
 
 struct Input {
     template: Vec<u8>,
@@ -34,40 +26,8 @@ fn parse(input_s: &str) -> Result<Input> {
     Ok(Input{template, rules})
 }
 
-fn apply_rules(p: &[u8], lookup: &HashMap::<[u8;2], [u8;3]>) -> Vec<u8> {
-    once(p[0])
-    .chain(
-        p.windows(2)
-        .flat_map(|w| lookup.get(w).and_then(|rep| Some(rep[1..].iter())).unwrap_or(w[1..].iter()))
-        .cloned()  
-    )
-    .collect()
-}
-
-fn part1(input: &Input) {
-    let lookup: HashMap::<[u8;2], [u8;3]> = input.rules.iter().map(|r| ([r.a as u8, r.b as u8], [r.a as u8, r.c as u8, r.b as u8])).collect();
-
-    let mut s10 = input.template.iter().cloned().collect::<Vec<_>>();
-    for i in 0..10 {
-        s10 = apply_rules(&s10, &lookup);
-        //println!("Pol {} {}: {}", i+1, s10.len(), std::str::from_utf8(&s10)?);
-    }
-    println!("S10 length: {}", s10.len());
-
-    let mut cts: HashMap<u8, isize> = HashMap::new();
-    for c in s10.iter() {
-        *(cts.entry(*c).or_insert(0)) +=1
-    }
-    println!("Bins: {:?}", &cts);
-    let mut cts_sorted: Vec<_> = cts.iter().collect();
-    cts_sorted.sort_by_key(|(_c, v)| *v);
-    let p1 = cts_sorted[cts.len()-1].1-cts_sorted[0].1;
-
-    println!("Part 1: {}", p1);
-}
-
 // work on pair counts. will miss one count at ends
-fn part2(input: &Input) {
+fn solve(reps: usize, input: &Input) {
     let pair_map: HashMap::<[u8;2], [[u8;2];2]> = input.rules.iter()
     .map(|r| ([r.a as u8, r.b as u8], [[r.a as u8, r.c as u8], [r.c as u8, r.b as u8]])).collect();
 
@@ -75,7 +35,7 @@ fn part2(input: &Input) {
     for p in input.template.windows(2) {
         *(pair_count.entry([p[0], p[1]]).or_insert(0))+=1;
     } 
-    for _ in 0..40 {
+    for _ in 0..reps {
         let mut pc = HashMap::new();
         for (p, n) in pair_count.iter() {
             for pair in pair_map.get(p).and_then(|v| Some(v.iter())).unwrap_or([*p].iter()) {
@@ -86,6 +46,7 @@ fn part2(input: &Input) {
     }
     // add ends
     *pair_count.entry([input.template[0], input.template[input.template.len()-1]]).or_insert(0)+=1;
+
     // count character (doubled)
     let mut cts: HashMap<u8, isize> = HashMap::new();
     for (cs, v) in pair_count.iter() {
@@ -93,7 +54,6 @@ fn part2(input: &Input) {
             *(cts.entry(*c).or_insert(0)) +=*v as isize;
         }
     }
-
     let mut cts_sorted: Vec<_> = cts.iter().collect();
     cts_sorted.sort_by_key(|(_c, v)| *v);
     let p2 = (cts_sorted[cts.len()-1].1-cts_sorted[0].1)/2;
@@ -105,10 +65,12 @@ fn part2(input: &Input) {
 
 fn main() -> Result<()> {
     println!("** TEST **");
-    part1(&parse(&fs::read_to_string("test00.txt")?)?);
-    part2(&parse(&fs::read_to_string("test00.txt")?)?);
+    let input = parse(&fs::read_to_string("test00.txt")?)?;
+    solve(10, &input);
+    solve(40, &input);
     println!("\n** INPUT **");
-    part1(&parse(&fs::read_to_string("input.txt")?)?);
-    part2(&parse(&fs::read_to_string("input.txt")?)?);
+    let input = parse(&fs::read_to_string("input.txt")?)?;
+    solve(10, &input);
+    solve(40, &input);
     Ok(())
 }
