@@ -88,3 +88,11 @@ Also: complete missed the clever solution of mapping activation groups directly 
 
 ## Day 9
 Another good day for `HashMap<(i32, i32), _>`.
+
+## Day 14
+First day where a clever algorithm was needed: brute force went belly up on part 2.
+
+My implementation missed the fact that there will always be a matching rule, which causes some extra complexity. Found a really nice solution by [timvisee](https://github.com/timvisee/advent-of-code-2021/blob/master/day14a/src/main.rs) using
+- `binary_search_by_key` instead of some fancy map to lookup rules
+- precomputes rule outcomes to avoid further lookups
+- uses `split-once` for efficient parsing
