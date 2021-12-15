@@ -96,3 +96,30 @@ My implementation missed the fact that there will always be a matching rule, whi
 - `binary_search_by_key` instead of some fancy map to lookup rules
 - precomputes rule outcomes to avoid further lookups
 - uses `split-once` for efficient parsing
+
+
+## Day 15
+
+Used `ndarray` for the maps for the first time. Was quite nice to work with.
+Major downside compared to using a map is that there is no `entry` -- so I have to do bounds checks (and cry that more bounds check is being done by `ndarray`). Came up with this model:
+
+    struct Bounds {
+        b: (usize, usize),
+    }
+
+    impl Bounds {
+        fn add(&self, p: (usize, usize), dp: (i32, i32)) -> Option<(usize, usize)> {
+            let i = p.0 as isize + dp.0 as isize;
+            let j = p.1 as isize + dp.1 as isize;
+            if i >= 0 && i < (self.b.0 as isize) && j >= 0 && j < (self.b.1 as isize) {
+                Some((i as usize, j as usize))
+            } else {
+                None
+            }
+        }
+    }
+
+The `.add` implementation would have benefitted from [`checked_add_signed`](https://doc.rust-lang.org/std/primitive.usize.html#method.checked_add_signed), but no nightly here. Works nicely like so
+
+    dirs.iter().filter_map(|d| bounds.add(position, *d))
+
