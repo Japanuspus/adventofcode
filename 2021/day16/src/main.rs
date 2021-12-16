@@ -3,8 +3,7 @@ use anyhow::{Result, Context};
 use std::fs;
 // use std::collections::BitVec; //unstable
 use bitvec::prelude::*;
-use nom::IResult; 
-
+use nom::IResult; // Not used for anything at present...
 
 #[derive(Debug)]
 struct Package {
@@ -25,12 +24,7 @@ enum Content {
 
 type BS = BitSlice<Msb0, u8>;
 
-// fn parse_package(bits: &BS) -> IResult<&BS, Package> {
-//     let version = bits[..3].to_bitvec().load_be::<u8>();
-//     Ok((&bits, Package{version}))
-// }
-
-fn parse_literal(bits: &BS) -> Result<(&BS, Content)> {
+fn parse_literal(bits: &BS) -> IResult<&BS, Content> {
     let mut rest = &bits[0..];
     let mut vbuf = BitVec::<Msb0>::new();
     loop {
@@ -44,7 +38,7 @@ fn parse_literal(bits: &BS) -> Result<(&BS, Content)> {
     Ok((&rest, Content::Literal{value}))
 }
 
-fn parse_operator_totbit(bits: &BS) -> Result<(&BS, Content)> {
+fn parse_operator_totbit(bits: &BS) -> IResult<&BS, Content> {
     let totbit = bits[..15].to_bitvec().load_be::<usize>();
     // The default `load` depends on arch!
     //println!("Totbit: {} of {}, from {:?}", &totbit, bits.len()-15, &bits[..15]);
@@ -59,7 +53,7 @@ fn parse_operator_totbit(bits: &BS) -> Result<(&BS, Content)> {
     Ok((&rest, Content::Operator {children}))
 }
 
-fn parse_operator_npak(bits: &BS) -> Result<(&BS, Content)> {
+fn parse_operator_npak(bits: &BS) -> IResult<&BS, Content> {
     let npak = bits[..11].to_bitvec().load_be::<usize>();
     let mut rest = &bits[11..];
     let mut children = Vec::new();
@@ -72,12 +66,12 @@ fn parse_operator_npak(bits: &BS) -> Result<(&BS, Content)> {
 }
 
 
-fn parse_operator(bits: &BS) -> Result<(&BS, Content)> {
+fn parse_operator(bits: &BS) -> IResult<&BS, Content> {
     if bits[0] {parse_operator_npak(&bits[1..])} else {parse_operator_totbit(&bits[1..])} 
 }
 
 
-fn parse_package(bits: &BS) -> Result<(&BS, Package)> {
+fn parse_package(bits: &BS) -> IResult<&BS, Package> {
     let version = bits[..3].to_bitvec().load_be::<u8>();
     let type_id = bits[3..6].to_bitvec().load_be::<u8>();
     let (rest, value) = match type_id  {
@@ -92,7 +86,7 @@ fn parse(input_s: &str) -> Result<Package> {
     if s.len() % 2 > 0 {s.push('0')}
     let input: Vec<u8> = hex::decode(&s)?;
     let bits = input.view_bits::<Msb0>();
-    let (_rest, p) = parse_package(bits)?;
+    let (_rest, p) = parse_package(bits).unwrap(); //Otherwise error may hold reference to bits...
     //assert!(rest.len() == 0);
     //println!("With {} bits remaining, package is: {:?}", rest.len(), &p);
     Ok(p)
