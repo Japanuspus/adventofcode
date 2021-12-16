@@ -123,3 +123,7 @@ The `.add` implementation would have benefitted from [`checked_add_signed`](http
 
     dirs.iter().filter_map(|d| bounds.add(position, *d))
 
+
+## Day 16
+
+Used the `bitvec` crate, but was initially frustrated trying to use it with `nom`. Issue turned out to be that `nom` error results maintain a reference to the input.

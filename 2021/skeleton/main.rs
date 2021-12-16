@@ -1,3 +1,6 @@
+#![allow(unused_imports, dead_code)]
+#![allow(unused_imports, dead_code)]
+
 use anyhow::{Result, Context};
 use std::fs;
 
