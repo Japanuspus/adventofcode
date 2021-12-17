@@ -1,0 +1,11 @@
+[dependencies]
+anyhow = "1.0"
+itertools = "0.10"
+parse-display = "0.5.3"
+regex = "1"
+
+[package]
+authors = ["Janus <janus@insignificancegalore.net>"]
+edition = "2021"
+name = "day17"
+version = "0.1.0"
