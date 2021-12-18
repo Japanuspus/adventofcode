@@ -18,13 +18,11 @@ struct Target {
     y: Range,
 }
 
-
 // y speeds after starting from 0
 //  n = 0   1   2   3
 // vy = 0   1   2   3
 //  y = 0   0   1   3   6  = m*(m+1)/2  m = n-1     (at end of step)
 //  n = sqrt(2y+.25)-.5
-
 fn y_step(dist: isize) -> f32 {
     let y: f32 = dist as f32;
     (2.0*y+0.25).sqrt()-0.5
@@ -90,23 +88,19 @@ fn solution(input_s: &str) -> Result<()> {
         .parse().with_context(|| format!("Parsing {}", input_s))?;
     let t = input;
     println!("Input: {}", t);
+    let vy_max = 1 + t.y.a.abs() as isize; 
 
-    let mut y_max = 0;
-    for vy in 0..1000 {
-        if let Some(_) = y_range(vy, &t.y) {
-            y_max = vy*(vy+1)/2;
-        }
-    }
-    println!("Part 1: {}", y_max);
+    let vy_1 = (0..=vy_max).filter(|&vy| y_range(vy, &t.y).is_some()).max().unwrap();
+    println!("Part 1: {}", vy_1*(vy_1+1)/2);
 
 
-    // limits on vx
+    // limits on v
     let vxmax = t.x.b+1; 
     let vxmin = y_step(t.x.a).floor() as isize - 1;
-
+    let vy_min = -vy_max;
     // Include negative initial y...
     let mut p2 = 0;
-    for vy in -300..1000 {
+    for vy in vy_min..=vy_max {
         if let Some((n1, n2)) = y_range(vy, &t.y) {
             for vx0 in vxmin..=vxmax {
                 let mut vx = vx0;
@@ -119,9 +113,6 @@ fn solution(input_s: &str) -> Result<()> {
                     if x>t.x.b {break}
                     if i<n1 {continue}
                     if x>=t.x.a {
-                        // solution
-                        //println!("Vy {}: {}..={} ({}--{})", vy, n1, n2, n1f, n2f);
-                        //println!("Solution: {}, {} at i={}", vx0, vy, i);
                         //print!("({}, {}), ", vx0, vy);
                         p2+=1;
                         break
