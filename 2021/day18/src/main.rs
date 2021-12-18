@@ -1,5 +1,4 @@
 #![allow(unused_imports, dead_code)]
-#![allow(unused_imports, dead_code)]
 
 use anyhow::{Result, Context};
 use itertools::Itertools;
@@ -9,7 +8,7 @@ use std::str::FromStr;
 
 use parse_display::{Display, FromStr};
 
-#[derive(PartialEq, Debug, Display)] //#, FromStr, Display, 
+#[derive(PartialEq, Debug, Display, Clone)] //#, FromStr, Display, 
 enum Node {
     #[display("{a}")]
     Number {a: isize},
@@ -36,6 +35,8 @@ impl FromStr for Node {
         .and_then(|(_, v)| Ok(v)).with_context(|| format!("Parsing {}", s))
     }
 }
+
+// todo: explore how to handle ownership for this in rust
 
 // trait NodeVisitor {
 //     fn visit(&mut self, n: usize, node: &mut Node);
@@ -118,13 +119,6 @@ fn split(t: &mut Node) -> bool {
     }
 }
 
-// #[test]
-// fn test_split() {
-//     let mut n = "[11,13]".parse::<Node>().unwrap();
-//     assert!(split(&mut n));
-//     assert_eq!(format!("{}", &n), "[[5,6],13]");
-// }
-
 fn reduce(i: &mut Node) {
     loop {
         while do_explode(i) {}
@@ -146,6 +140,13 @@ fn test_reduce() {
     assert_eq!(format!("{}", &n), "[[[[0,7],4],[[7,8],[6,0]]],[8,1]]");
 }
 
+fn add(a: Node, b: Node) -> isize {
+    let mut n = Node::Pair{a: Box::new(a), b: Box::new(b)}; 
+    reduce(&mut n); 
+    magnitude(&n)
+}
+
+
 fn solution(input_s: &str) -> Result<()> {
     let input: Vec<Node> = input_s
         .trim()
@@ -154,9 +155,12 @@ fn solution(input_s: &str) -> Result<()> {
         .collect::<Result<_,_>>()?;
 
     //println!("Part 1: {}", input.len());
-    let s = input.into_iter().reduce(|a, b| {let mut n = Node::Pair{a: Box::new(a), b: Box::new(b)}; reduce(&mut n); n}).unwrap();
+    let s = input.iter().cloned().reduce(|a, b| {let mut n = Node::Pair{a: Box::new(a), b: Box::new(b)}; reduce(&mut n); n}).unwrap();
     println!("Sum: {}", s);
     println!("Part 1: {}", magnitude(&s));
+
+    let p2 = input.iter().cloned().flat_map(|a| input.iter().cloned().map(move |b| add(a.clone(), b))).max().unwrap();
+    println!("Part 2: {}", p2);
     Ok(())
 }
 
