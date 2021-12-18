@@ -16,12 +16,18 @@ enum Node {
     Pair {a: Box<Node>, b: Box<Node>},
 }
 
+impl Node {
+    fn pair(a: Node, b: Node) -> Self {
+        Node::Pair{a: Box::new(a), b: Box::new(b)}
+    }
+}
+
 fn parse_node(i: &[u8]) -> Result<(&[u8], Node)> {
     let c = i[0];
     if c==b'[' {
         let (i, a) = parse_node(&i[1..])?;
         let (i, b) = parse_node(&i[1..])?; //skipping ,
-        Ok((&i[1..], Node::Pair{a: Box::new(a), b: Box::new(b)}))
+        Ok((&i[1..], Node::pair(a, b)))
     } else {
         Ok((&i[1..], Node::Number{a: (c-b'0') as isize}))
     } 
@@ -107,10 +113,7 @@ fn test_explode() {
 fn split(t: &mut Node) -> bool {
     match t {
         Node::Number{a} => if *a>=10 {
-            *t = Node::Pair{
-                a: Box::new(Node::Number{a: *a/2}), 
-                b: Box::new(Node::Number{a: (*a+1)/2})
-            }; 
+            *t = Node::pair(Node::Number{a: *a/2}, Node::Number{a: (*a+1)/2});
             true
         } else {
             false
@@ -141,7 +144,7 @@ fn test_reduce() {
 }
 
 fn add(a: Node, b: Node) -> isize {
-    let mut n = Node::Pair{a: Box::new(a), b: Box::new(b)}; 
+    let mut n = Node::pair(a, b); 
     reduce(&mut n); 
     magnitude(&n)
 }
@@ -155,11 +158,11 @@ fn solution(input_s: &str) -> Result<()> {
         .collect::<Result<_,_>>()?;
 
     //println!("Part 1: {}", input.len());
-    let s = input.iter().cloned().reduce(|a, b| {let mut n = Node::Pair{a: Box::new(a), b: Box::new(b)}; reduce(&mut n); n}).unwrap();
+    let s = input.iter().cloned().reduce(|a, b| {let mut n = Node::pair(a, b); reduce(&mut n); n}).unwrap();
     println!("Sum: {}", s);
     println!("Part 1: {}", magnitude(&s));
 
-    let p2 = input.iter().cloned().flat_map(|a| input.iter().cloned().map(move |b| add(a.clone(), b))).max().unwrap();
+    let p2 = input.iter().cartesian_product(input.iter()).map(|(a,b)| add(a.clone(),b.clone())).max().unwrap();
     println!("Part 2: {}", p2);
     Ok(())
 }
