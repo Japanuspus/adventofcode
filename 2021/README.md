@@ -126,4 +126,49 @@ The `.add` implementation would have benefitted from [`checked_add_signed`](http
 
 ## Day 16
 
-Used the `bitvec` crate, but was initially frustrated trying to use it with `nom`. Issue turned out to be that `nom` error results maintain a reference to the input.
+Used the `bitvec` crate, but was initially frustrated trying to use it with `nom`. Issue turned out to be that `nom` `Err` results maintain a reference to the input. 
+
+
+## Day 17: Trick Shot
+
+Spent a lot of time finding a correct closed form solution for the possible intersects given y-velocity. Once that was working, things were nice (using part 2 as example to remind myself of `scan`)
+
+    let p2:usize = (vy_min..=vy_max)
+    .filter_map(|vy| y_range(vy, &t.y))
+    .map(|(n1, n2)| 
+        (vx_min..vx_max).filter(|vx0| 
+            (1..=n2)
+            .scan((*vx0, 0), |(vx, x), i| {if *vx>0 {*x+=*vx; *vx-=1;}; Some((i, *x))})
+            .any(|(i, x)| i>=n1 && x>=t.x.a && x<=t.x.b)
+        ).count()
+    )
+    .sum();
+
+## Day 18: Snailfish (recursive pairs)
+
+Tried doing a visitor-pattern, but got stuck in fighting the borrow checker.
+The recursive solution was ok-ish, but a stateful visitor would probably have been as well. Looking forward to seeing other solutions for this.
+
+The recursive descent parser was nice (didn't use nom..m)
+
+    fn parse_node(i: &[u8]) -> Result<(&[u8], Node)> {
+        let c = i[0];
+        if c==b'[' {
+            let (i, a) = parse_node(&i[1..])?;
+            let (i, b) = parse_node(&i[1..])?; //skipping ,
+            Ok((&i[1..], Node::Pair{a: Box::new(a), b: Box::new(b)}))
+        } else {
+            Ok((&i[1..], Node::Number{a: (c-b'0') as isize}))
+        } 
+    }
+
+... wrapped this in a `FromStr`-impl: 
+
+    impl FromStr for Node {
+        type Err = anyhow::Error;
+
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            parse_node(s.as_bytes())
+            .and_then(|(_, v)| Ok(v)).with_context(|| format!("Parsing {}", s))
+        }
+    }
