@@ -2,7 +2,7 @@
 
 use anyhow::{Result, Context};
 use itertools::Itertools;
-use ndarray::{s, ArrayView2, Array2, Array, ArrayView, ArrayView1, ArrayBase, Data, Ix1};
+use ndarray::{s, ArrayView2, Array2, Array, ArrayView, ArrayView1, ArrayBase, Data, Ix1, Array1, arr1};
 use std::{fs, collections::{HashMap, HashSet}, ops::Sub};
 // use ndarray_linalg::solve::Determinant; // compile errors galore 
 
@@ -34,7 +34,7 @@ fn array_to_point_set(m: &Vec<i32>) -> HashSet<&[i32]> {
     m.chunks(3).collect()
 }
 
-fn align(s0: &Vec<i32>, s1: &Vec<i32>, rots: &Vec<Array2<i32>>) -> Result<Option<Vec<i32>>> {
+fn align(s0: &Vec<i32>, s1: &Vec<i32>, rots: &Vec<Array2<i32>>) -> Result<Option<(Vec<i32>, Array1<i32>)>> {
     //Build lookup of relative vectors within s0
     let pts_set = array_to_point_set(s0);
     let pts = ArrayView2::from_shape((s0.len()/3, 3), s0)?.into_owned();
@@ -63,14 +63,15 @@ fn align(s0: &Vec<i32>, s1: &Vec<i32>, rots: &Vec<Array2<i32>>) -> Result<Option
             //println!("Found {} possible matches for entry {}: {}", i_vals.len(), k, rk);
             // check each possible match
             for i in i_vals.iter() {
-                let new_pts_shift = &new_pts_rot + (&pts.row(*i)-&rk);
+                let pt_origin = &pts.row(*i)-&rk;
+                let new_pts_shift = &new_pts_rot + &pt_origin;
                 assert_eq!(new_pts_shift.row(k), pts.row(*i));
                 let new_pts_shift_vec = new_pts_shift.into_raw_vec();
                 let new_pts_shift_set = array_to_point_set(&new_pts_shift_vec);
                 let ct = pts_set.intersection(&new_pts_shift_set).count();
                 assert!(ct>=2);
                 if ct>=12 {
-                    return Ok(Some(new_pts_shift_vec))
+                    return Ok(Some((new_pts_shift_vec, pt_origin)))
                 }
             }
         }
@@ -100,10 +101,12 @@ fn solution(input_s: &str) -> Result<()> {
     let mut complete: Vec<Vec<i32>> = Vec::new();
     let mut ready: Vec<Vec<i32>> = vec![input[0].clone()];
     let mut remaining: Vec<&Vec<i32>> = input[1..].iter().collect();
+    let mut scanners: Vec<_> = Vec::new();
     while let Some(s0) = ready.pop() {
         remaining = remaining.into_iter().filter_map(|s1| {
-            if let Some(s) = align(&s0, s1, &rots).unwrap() {
+            if let Some((s, o)) = align(&s0, s1, &rots).unwrap() {
                 ready.push(s);
+                scanners.push(o);
                 None
             } else {
                 Some(s1)
@@ -118,7 +121,13 @@ fn solution(input_s: &str) -> Result<()> {
     .unwrap();
 
     println!("Part 1: {}", beacons.len());
-    println!("Part 2: {}", 0);
+
+    scanners.push(arr1(&[0,0,0]));
+    let p2 = scanners.iter()
+    .cartesian_product(scanners.iter())
+    .map(|(a,b)| {let d = a-b; d.iter().map(|c| c.abs()).sum()})
+    .max().unwrap_or(0);
+    println!("Part 2: {}", p2);
     Ok(())
 }
 
