@@ -1,0 +1,15 @@
+[dependencies]
+anyhow = "1.0"
+itertools = "0.10"
+parse-display = "0.5.3"
+regex = "1"
+ndarray = "0.15.4"
+#ndarray-linalg = { version = "0.14", features = ["intel-mkl-system"] }
+#intel-mkl-sys = "0.2.0"
+#intel-mkl-src = "0.6.0"
+
+[package]
+authors = ["Janus <janus@insignificancegalore.net>"]
+edition = "2021"
+name = "day19"
+version = "0.1.0"
