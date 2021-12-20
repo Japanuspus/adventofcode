@@ -1,0 +1,13 @@
+[dependencies]
+anyhow = "1.0"
+itertools = "0.10"
+parse-display = "0.5.3"
+regex = "1"
+bitvec = "0.22.3"
+ndarray = "0.14.0"
+
+[package]
+authors = ["Janus <janus@insignificancegalore.net>"]
+edition = "2021"
+name = "day20"
+version = "0.1.0"
