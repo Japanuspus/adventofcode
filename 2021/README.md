@@ -172,3 +172,22 @@ The recursive descent parser was nice (didn't use nom..m)
             .and_then(|(_, v)| Ok(v)).with_context(|| format!("Parsing {}", s))
         }
     }
+
+## Day 19: Beacon Scanner
+
+Spent forever on this one and ended up with a monstrosity. 
+
+This was my first time really using `ndarray`. In general, ergonomics were good, but when trying to compute a determinant I was required to install the linear algebra extension which has external dependencies.
+Seems there might be a need for a "basic linear algebra without external dependencies"-package.
+
+Performance was quite bad: Even with `--release`, the run took several seconds.
+
+When matching up the maps, I used a lookup from pair-distance vectors which required me to compute all the rotations to rule out a match. A better approach would have been to use Manhatten distance or some other rotation invariant for key. Also, I could have used `ndarray` broadcast to build the entire distance set as an `Array3`, which would have also allowed me to transform it.
+Probably would have made sense to make a struct with all the gunk related to a sensor reading.
+
+## Day 20: Trench Map
+
+Only checked whether 0 mapped to 0 for the test input, not for my own -- so the initial solution was bad.
+A good day for `bitvec` and `ndarray`, although I could have probably done something really funky with bitvecs for everything.
+
+
