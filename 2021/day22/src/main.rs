@@ -3,7 +3,7 @@
 use anyhow::{Result, Context};
 use apply::Apply;
 use itertools::Itertools;
-use std::fs;
+use std::{fs, iter::once, collections::{HashSet, BTreeSet}, os::windows};
 
 use parse_display::{Display, FromStr};
 
@@ -21,57 +21,105 @@ struct Range {
     b: i32,
 }
 
-impl Range {
-    fn contains(&self, v: i32) -> bool {
-        v>=self.a && v<=self.b
-    }
-}
-
 #[derive(Debug, Display, FromStr)]
 #[display("{state} x={x},y={y},z={z}")]
-struct Step {
+struct ReadStep {
     state: OnOff,
     x: Range,
     y: Range,
     z: Range,
 }
 
+#[derive(Debug, Clone)]
+struct Step {
+    state: bool,
+    range: [[i32;2];3],
+}
+
 impl Step {
+    fn new(r: &ReadStep) -> Self {
+        let state = match r.state {
+            OnOff::On => true,
+            OnOff::Off => false
+        };
+        let range = [
+            [r.x.a, r.x.b],
+            [r.y.a, r.y.b],
+            [r.z.a, r.z.b],
+        ];
+        Step{state, range}
+    }
+
     fn contains(&self, v: &[i32]) -> Option<bool> {
-        if self.x.contains(v[0]) && self.y.contains(v[1]) && self.z.contains(v[2]) {
-            match self.state {
-                OnOff::On => true,
-                OnOff::Off => false
-            }
-            .apply(Some)
+        if self.range.iter().zip(v).all(|([a, b], u)| a<=u && u<=b) {
+            Some(self.state)
+        } else {
+            None
+        }
+    }
+
+    // v is a windows from breaks_after: perfect overlap is a-1, b
+    fn contains_range(&self, v: &Vec<&[i32]>) -> Option<bool> {
+        if self.range.iter().zip(v).all(|([a, b], u)| 
+            (a-1<=u[0]) && (b>=&u[1])
+        ) {
+            Some(self.state)
         } else {
             None
         }
     }
 }
 
-fn solution(input_s: &str) -> Result<()> {
-    let input: Vec<Step> = input_s
+fn parse(input_s: &str) -> Result<Vec<Step>> {
+    input_s
         .trim()
         .split("\n")
-        .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
-        .collect::<Result<_,_>>()?;
+        .map(|s| 
+            s.parse::<ReadStep>()
+            .and_then(|r| Ok(Step::new(&r)))
+            .with_context(|| format!("Parsing {}", s)))
+        .collect::<Result<_,_>>()
+}
 
-    //brute force part 1
-    let p1 = (0..3).map(|_| (-50i32..=50i32))
+fn part1(input: &Vec<Step>) -> usize {
+    (0..3).map(|_| (-50i32..=50i32))
     .multi_cartesian_product()
     .filter(|v| input.iter().filter_map(|s| s.contains(&v)).last().unwrap_or(false))
-    .count();
+    .count()
+}
 
-    println!("Part 1: {}", p1);
-    println!("Part 2: {}", 0);
+fn part2_brute(input: &Vec<Step>) -> usize {
+    let break_after: Vec<Vec<i32>> = (0..3).map(|i| {
+        input
+        .iter()
+        .flat_map(|s| [s.range[i][0]-1, s.range[i][1]].into_iter())
+        .collect::<BTreeSet<i32>>()
+        .apply(|b_set| b_set.into_iter().collect())
+    }).collect();
+    break_after.iter()
+    .map(|breaks| breaks.windows(2))
+    .multi_cartesian_product()
+    .map(|rs| 
+        if input.iter().filter_map(|step| step.contains_range(&rs)).last().unwrap_or(false) {
+            rs.iter().map(|ab| (ab[1]-ab[0]) as usize).product()
+        } else {
+            0usize
+        })
+    .sum()
+}
+
+fn solve(n: &str) -> Result<()> {
+    println!("** {} **", n);
+    let input = parse(&fs::read_to_string(n)?)?;
+    println!("Part 1: {}", part1(&input));
+    println!("Part 2 brute: {}", part2_brute(&input));
     Ok(())
 }
 
 fn main() -> Result<()> {
-    println!("** TEST **");
-    //solution(&fs::read_to_string("test00.txt")?)?;
-    println!("\n** INPUT **");
-    solution(&fs::read_to_string("input.txt")?)?;
+    solve("test01.txt")?;
+    solve("test02.txt")?;
+    // runtime is really bad!
+    solve("input.txt")?;
     Ok(())
 }
