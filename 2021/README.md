@@ -190,4 +190,51 @@ Probably would have made sense to make a struct with all the gunk related to a s
 Only checked whether 0 mapped to 0 for the test input, not for my own -- so the initial solution was bad.
 A good day for `bitvec` and `ndarray`, although I could have probably done something really funky with bitvecs for everything.
 
+## Day 21: Dirac Dice
 
+Tried a recursive solution which timed out. Did not think about simply caching it, so I ended up tracking the full game state across rounds.
+Was actually quite concise, and should be quite efficient.
+
+    let mut wins = [0usize;2];
+    while states.len() > 0 {
+        for i in 0..2 {
+            let mut states_next: Counts = HashMap::new();
+            for (s0, ct) in states.into_iter() {
+                for roll in 3..=9 {
+                    let n = ct * roll_count[roll as usize];
+                    let s1 = s0.play(i, roll);
+                    if s1.score[i] >= 21 {
+                        wins[i]+=n;
+                    } else {
+                        *states_next.entry(s1).or_default() += n;
+                    }
+                }
+            }
+            states = states_next;
+        }
+    }
+
+
+## Day 22: Reactor Reboot
+
+The examples gave that splitting into regions on all three axes and then scanning over the cartesian product of these would be feasible. 
+It did work, but runtime was terrible. Looking back, the right solution would have been recursive scanlines.
+Still, the brute-force solution was pretty concise: 
+
+    let break_after: Vec<Vec<i32>> = (0..3).map(|i| {
+        input
+        .iter()
+        .flat_map(|s| [s.range[i][0]-1, s.range[i][1]].into_iter())
+        .collect::<BTreeSet<i32>>()
+        .apply(|b_set| b_set.into_iter().collect())
+    }).collect();
+    break_after.iter()
+    .map(|breaks| breaks.windows(2))
+    .multi_cartesian_product()
+    .map(|rs| 
+        if input.iter().rev().filter_map(|step| step.contains_range(&rs)).nth(0).unwrap_or(false) {
+            rs.iter().map(|ab| (ab[1]-ab[0]) as usize).product()
+        } else {
+            0usize
+        })
+    .sum()
