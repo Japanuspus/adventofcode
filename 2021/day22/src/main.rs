@@ -3,7 +3,7 @@
 use anyhow::{Result, Context};
 use apply::Apply;
 use itertools::Itertools;
-use std::{fs, iter::once, collections::{HashSet, BTreeSet}, os::windows};
+use std::{fs, iter::{once, Scan}, collections::{HashSet, BTreeSet}, os::windows};
 
 use parse_display::{Display, FromStr};
 
@@ -33,11 +33,12 @@ struct ReadStep {
 #[derive(Debug, Clone)]
 struct Step {
     state: bool,
+    order: u16,
     range: [[i32;2];3],
 }
 
 impl Step {
-    fn new(r: &ReadStep) -> Self {
+    fn new(r: &ReadStep, order: u16) -> Self {
         let state = match r.state {
             OnOff::On => true,
             OnOff::Off => false
@@ -47,7 +48,7 @@ impl Step {
             [r.y.a, r.y.b],
             [r.z.a, r.z.b],
         ];
-        Step{state, range}
+        Step{state, range, order}
     }
 
     fn contains(&self, v: &[i32]) -> Option<bool> {
@@ -74,9 +75,10 @@ fn parse(input_s: &str) -> Result<Vec<Step>> {
     input_s
         .trim()
         .split("\n")
-        .map(|s| 
+        .enumerate()
+        .map(|(i, s)| 
             s.parse::<ReadStep>()
-            .and_then(|r| Ok(Step::new(&r)))
+            .and_then(|r| Ok(Step::new(&r, i as u16)))
             .with_context(|| format!("Parsing {}", s)))
         .collect::<Result<_,_>>()
 }
@@ -86,6 +88,32 @@ fn part1(input: &Vec<Step>) -> usize {
     .multi_cartesian_product()
     .filter(|v| input.iter().filter_map(|s| s.contains(&v)).last().unwrap_or(false))
     .count()
+}
+
+struct Scanline <'a> {
+    idx: usize,
+    all: Vec<&'a Step>,
+    active: Vec<&'a Step>,
+}
+
+impl <'a> Scanline<'a> {
+    fn new(idx: usize, v: &'a [Step]) -> Self {
+        let all: Vec<&'a Step>=v.iter().sorted_by_key(|s| s.range[idx][0]).collect();
+        let active = Vec::new();
+        Self{all, active, idx}
+    }
+}
+
+impl <'a> Iterator for Scanline<'a> {
+    type Item = ((i32, i32), Vec<&'a Step>);
+    fn next(&mut self) -> Option<Self::Item> {
+        let next_close = self.active.iter().nth(0).and_then(|a| Some(a.range[self.idx][1]));
+        let next_open = self.all.iter().nth(0).and_then(|a| Some(a.range[self.idx][0]));
+        match (next_close, next_open) {
+            (None, None) => None,
+            _ => None,
+        }
+    }
 }
 
 fn part2_brute(input: &Vec<Step>) -> usize {
