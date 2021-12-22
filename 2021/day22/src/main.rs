@@ -100,7 +100,7 @@ fn part2_brute(input: &Vec<Step>) -> usize {
     .map(|breaks| breaks.windows(2))
     .multi_cartesian_product()
     .map(|rs| 
-        if input.iter().filter_map(|step| step.contains_range(&rs)).last().unwrap_or(false) {
+        if input.iter().rev().filter_map(|step| step.contains_range(&rs)).nth(0).unwrap_or(false) {
             rs.iter().map(|ab| (ab[1]-ab[0]) as usize).product()
         } else {
             0usize
