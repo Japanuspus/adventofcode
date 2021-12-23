@@ -57,17 +57,6 @@ impl Step {
             None
         }
     }
-
-    // v is a windows from breaks_after: perfect overlap is a-1, b
-    fn contains_range(&self, v: &Vec<&[i32]>) -> Option<bool> {
-        if self.range.iter().zip(v).all(|([a, b], u)| 
-            (a-1<=u[0]) && (b>=&u[1])
-        ) {
-            Some(self.state)
-        } else {
-            None
-        }
-    }
 }
 
 fn parse(input_s: &str) -> Result<Vec<Step>> {
@@ -88,38 +77,49 @@ fn part1(input: &Vec<Step>) -> usize {
     .count()
 }
 
-fn part2_brute(input: &Vec<Step>) -> usize {
-    let break_after: Vec<Vec<i32>> = (0..3).map(|i| {
-        input
+
+fn filter(v: Vec<&Step>, idx: usize) -> impl Iterator<Item=(usize, Vec<&Step>)> {
+    let break_after: Vec<i32> = v
         .iter()
-        .flat_map(|s| [s.range[i][0]-1, s.range[i][1]].into_iter())
+        .flat_map(|s| [s.range[idx][0]-1, s.range[idx][1]].into_iter())
         .collect::<BTreeSet<i32>>()
-        .apply(|b_set| b_set.into_iter().collect())
-    }).collect();
-    break_after.iter()
-    .map(|breaks| breaks.windows(2))
-    .multi_cartesian_product()
-    .map(|rs| 
-        if input.iter().rev().filter_map(|step| step.contains_range(&rs)).nth(0).unwrap_or(false) {
-            rs.iter().map(|ab| (ab[1]-ab[0]) as usize).product()
-        } else {
-            0usize
-        })
-    .sum()
+        .apply(|b_set| b_set.into_iter().collect());
+    assert!(idx<3);
+    // break_after.windows(2)
+    (0..break_after.len().checked_sub(1).unwrap_or(0))
+    .map(move |k| [break_after[k], break_after[k+1]])
+    .map(move |u| (
+        (u[1]-u[0]) as usize,
+        v.iter().cloned().filter(|s| {let [a, b] = s.range[idx]; (a-1<=u[0]) && (b>=u[1])}).collect::<Vec<&Step>>()
+    ))
 }
+
+fn part2(input: &Vec<Step>) -> usize {
+    let mut p2 = 0usize;
+    let v: Vec<&Step> = input.iter().collect();
+    for (nx, vx) in filter(v, 0) {
+        for (ny, vxy) in filter(vx, 1) {
+            for (nz, vxyz) in filter(vxy, 2) {
+                if vxyz.iter().rev().nth(0).and_then(|s| Some(s.state)).unwrap_or(false) {p2+=nx*ny*nz} else {}
+            }
+        }
+    };
+    p2
+}
+
 
 fn solve(n: &str) -> Result<()> {
     println!("** {} **", n);
     let input = parse(&fs::read_to_string(n)?)?;
     println!("Part 1: {}", part1(&input));
-    println!("Part 2 brute: {}", part2_brute(&input));
+    println!("Part 2: {}", part2(&input));
     Ok(())
 }
 
 fn main() -> Result<()> {
     solve("test01.txt")?;
     solve("test02.txt")?;
-    // runtime is really bad!
+    // runtime is really bad without --release
     solve("input.txt")?;
     Ok(())
 }
