@@ -1,7 +1,5 @@
-#![allow(unused_imports, dead_code)]
-
-use anyhow::{Result, Context};
-use std::{fs, fmt};
+use anyhow::{Result};
+use std::{fs, fmt, collections::{HashMap, BinaryHeap}, cmp::{Reverse}};
 
 // #############  #############    
 // #...........#  #01.2.3.4.56#
@@ -19,7 +17,7 @@ fn distance(i: usize, j: usize, pos: usize) -> usize {
     j+1+abs_diff(match pos {0=>1, 6=>11, _ => 2*pos}, 2*i+3)
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Ord, Eq, Hash)]
 struct Board {
     rooms: [[u8;4];4], //[room][slot]
     hall: [u8;7],
@@ -30,7 +28,6 @@ fn byte_for(i: u8) -> u8 {
 }
 
 impl fmt::Display for Board {
-    // This trait requires `fmt` with this exact signature.
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let b = [
             b"#############",
@@ -101,40 +98,46 @@ impl Board {
     }
 }
 
-fn solve(b: &Board) -> Option<usize> {
-    let mut ready_count = 0;
-    (0..4).filter_map(|i| {
-        let ready = b.rooms[i].iter().all(|&v| v==0 || v== i as u8 +1);
-        if ready {ready_count+=1; solve_in(b, i) } else {solve_out(b, i)}
-    })
-    .min()
-    .or_else(|| if ready_count==4 {Some(0)} else {None})
+fn solve(board: &Board) -> Option<usize> {
+    let mut work: BinaryHeap<Reverse<(usize, Board)>> = BinaryHeap::new();
+    let mut visited: HashMap<Board, usize> = HashMap::new();
+    work.push(Reverse((0, board.clone())));
+
+    while let Some(Reverse((cost, b))) = work.pop() {
+        let ready: Vec<bool> = (0..4).map(|i| b.rooms[i].iter().all(|&v| v==0 || v== i as u8 +1)).collect();
+        if ready.iter().all(|v| *v) && b.hall.iter().all(|h| *h==0) {return Some(cost)}
+        if let Some(v_cost) = visited.get(&b) {
+            if v_cost <= &cost {
+                continue;
+            }
+        }
+        for (i, r) in ready.into_iter().enumerate() {
+            if r {
+                work.extend(moves_in(&b, i).map(|(move_cost, new_board)| Reverse((cost+move_cost, new_board))));
+            } else {
+                work.extend(moves_out(&b, i).map(|(move_cost, new_board)| Reverse((cost+move_cost, new_board))));
+            }
+        }
+        *visited.entry(b).or_default() = cost;
+    } 
+    None
 }
 
-fn solve_in(b: &Board, i: usize) -> Option<usize> {
-    let left = (0..=(i+1)).rev().zip(b.hall[0..=(i+1)].iter().rev().cloned()).filter(|(pos, v)| v>&0).next();
-    let right = ((i+2)..7).zip(b.hall[(i+2)..7].iter().cloned()).filter(|(pos, v)| v>&0).next();
+fn moves_in<'a>(b: &'a Board, i: usize) -> impl Iterator<Item=(usize, Board)> + 'a {
+    let left = (0..=(i+1)).rev().zip(b.hall[0..=(i+1)].iter().rev().cloned()).filter(|(_pos, v)| v>&0).next();
+    let right = ((i+2)..7).zip(b.hall[(i+2)..7].iter().cloned()).filter(|(_pos, v)| v>&0).next();
     [left, right].into_iter()
     .filter_map(|x| x)
-    .filter_map(|(pos, v)|  if v==i as u8+1 {
-        let (cost, board_new) = b.move_in(i, pos);
-        solve(&board_new).and_then(|c| Some(c+cost))
-    } else { None }
-    ).min()
+    .filter_map(move |(pos, v)|  if v==i as u8+1 {
+        Some(b.move_in(i, pos))
+    } else {None})
 }
 
-fn solve_out(b: &Board, i: usize) -> Option<usize> {
-    let left = (0..(i+2)).rev().zip(b.hall[0..(i+2)].iter().rev().cloned()).take_while(|(pos, v)| v==&0);
-    let right = ((i+2)..7).zip(b.hall[(i+2)..7].iter().cloned()).take_while(|(pos, v)| v==&0);
-    left.chain(right)
-    .filter_map(|(pos, v)| {
-        let (cost, board_new) = b.move_out(i, pos);
-        solve(&board_new).and_then(|c| Some(c+cost))
-    })
-    .min()
+fn moves_out<'a>(b: &'a Board, i: usize) -> impl Iterator<Item=(usize, Board)> + 'a {
+    let left = (0..(i+2)).rev().zip(b.hall[0..(i+2)].iter().rev().cloned()).take_while(|(_pos, v)| v==&0);
+    let right = ((i+2)..7).zip(b.hall[(i+2)..7].iter().cloned()).take_while(|(_pos, v)| v==&0);
+    left.chain(right).map(move |(pos, _v)| b.move_out(i, pos))
 }
-
-
 
 fn solution(input_s: &str) -> Result<()> {
     let input: Vec<u8> = input_s
@@ -153,11 +156,6 @@ fn solution(input_s: &str) -> Result<()> {
     }
     let board = Board::new(rooms);
     println!("{}", &board);
-    // let (c, board) = board.move_out(2, 2);
-    // println!("Cost {}->\n{}", c, &board);
-    // let (c1, board) = board.move_out(1, 3);
-    // let (c2, board) = board.move_in(2, 3);
-    // println!("Cost {}->\n{}", c1+c2, &board);
     println!("Part 1: {}", solve(&board).unwrap());
 
     //part2
@@ -172,7 +170,7 @@ fn solution(input_s: &str) -> Result<()> {
     }
     let board = Board::new(rooms);
     println!("{}", &board);
-    //println!("Part 2: {}", solve(&board).unwrap());
+    println!("Part 2: {}", solve(&board).unwrap());
 
     Ok(())
 }
