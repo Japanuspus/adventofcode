@@ -1,5 +1,9 @@
 # Advent of code 2021 in rust
 
+These solutions were all done on the days they were released, but this was primarily to avoid using the whole day trying to find the perfect solution before implementing, and to be sure I found a solution before inadvertently stumbling over a solution on reddit.
+
+Most solutions are the same version I made on the day of the calendar, but I have marked some days with **possible extension** if I ever get the time to go back and clean up.
+
 ## General tools
 
 Will be using `aocprep` from 2020 again.
@@ -185,6 +189,8 @@ Performance was quite bad: Even with `--release`, the run took several seconds.
 When matching up the maps, I used a lookup from pair-distance vectors which required me to compute all the rotations to rule out a match. A better approach would have been to use Manhatten distance or some other rotation invariant for key. Also, I could have used `ndarray` broadcast to build the entire distance set as an `Array3`, which would have also allowed me to transform it.
 Probably would have made sense to make a struct with all the gunk related to a sensor reading.
 
+**Possible extension**: Use pair-distance for excluding matches.
+
 ## Day 20: Trench Map
 
 Only checked whether 0 mapped to 0 for the test input, not for my own -- so the initial solution was bad.
@@ -238,3 +244,47 @@ Still, the brute-force solution was pretty concise:
             0usize
         })
     .sum()
+
+**Possible extension**: Use scanlines.
+
+## Day 23: Amphipod
+
+My only global leaderboard position -- by solving part 1 manually :blush:.
+
+Solution was a simple Dijkstra, but could be extended to A* by adding the cost to move everything home without interactions.
+
+One thing that annoyed me was this part:
+
+    if r {
+        work.extend(moves_in(&b, i).map(|(move_cost, new_board)| Reverse((cost+move_cost, new_board))));
+    } else {
+        work.extend(moves_out(&b, i).map(|(move_cost, new_board)| Reverse((cost+move_cost, new_board))));
+    }
+
+It would have been nice to do something like this - should look into `dyn`.
+
+    work.extend(
+        if r {moves_in(&b, i)} else {move_out(&b, i)}
+        .map(|(move_cost, new_board)| Reverse((cost+move_cost, new_board)))
+    );
+
+
+
+**Possible extensions**: Use A*.
+
+
+## Day 24: Arithmetic Logic Unit
+
+I cheated and converted the code to an algebraic expression manually....
+
+After that I used a depth first search, making use of the facts that this would give the desired solution by choosing the right order of the visits to the digits. 
+This solution would also work for a generic state machine, but it would not be able to take advantage of the fact that the `x` and `y`-registers were ignored, so the cache would be less efficient. But more fun...
+
+**Possible extension**: Solve day 24 without hand-parsing the code.
+
+## Day 25: Sea Cucumber
+
+Kept each species in a separate ndarray and used a transposed view to make the same move operation work for both. The move itself was surprisingly clunky, but all in all the code very concise -- 67 lines in total.
+
+**Possible extension**: Try cleaning up the move logic.
+
