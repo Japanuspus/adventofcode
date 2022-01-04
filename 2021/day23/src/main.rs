@@ -103,22 +103,19 @@ fn solve(board: &Board) -> Option<usize> {
     let mut visited: HashMap<Board, usize> = HashMap::new();
     work.push(Reverse((0, board.clone())));
 
-    while let Some(Reverse((cost, b))) = work.pop() {
-        let ready: Vec<bool> = (0..4).map(|i| b.rooms[i].iter().all(|&v| v==0 || v== i as u8 +1)).collect();
-        if ready.iter().all(|v| *v) && b.hall.iter().all(|h| *h==0) {return Some(cost)}
-        if let Some(v_cost) = visited.get(&b) {
+    while let Some(Reverse((cost, board))) = work.pop() {
+        let ready: Vec<bool> = (0..4).map(|i| board.rooms[i].iter().all(|&v| v==0 || v== i as u8 +1)).collect();
+        if ready.iter().all(|v| *v) && board.hall.iter().all(|h| *h==0) {return Some(cost)}
+        if let Some(v_cost) = visited.get(&board) {
             if v_cost <= &cost {
                 continue;
             }
         }
-        for (i, r) in ready.into_iter().enumerate() {
-            if r {
-                work.extend(moves_in(&b, i).map(|(move_cost, new_board)| Reverse((cost+move_cost, new_board))));
-            } else {
-                work.extend(moves_out(&b, i).map(|(move_cost, new_board)| Reverse((cost+move_cost, new_board))));
-            }
+        for (i, ready) in ready.into_iter().enumerate() {
+            let move_generator: Box<dyn Iterator<Item=(usize, Board)>>= if ready {Box::new(moves_in(&board, i))} else {Box::new(moves_out(&board, i))};
+            work.extend(move_generator.map(|(move_cost, new_board)| Reverse((cost+move_cost, new_board))));
         }
-        *visited.entry(b).or_default() = cost;
+        *visited.entry(board).or_default() = cost;
     } 
     None
 }
