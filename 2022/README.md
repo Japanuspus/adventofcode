@@ -9,3 +9,10 @@ As for the previous years, I will try to timebox my solutions were all done on t
 Will be using `aocprep` from 2020 again.
 
 ## Day 1
+
+Had to google `rust parse str to int`, but other than that it felt pretty natural coming back to Rust.
+
+Same as the other years, I am thinking about ways to make the parts testable without defining too many types.
+Maybe using owned strings for output and defining an `Input`-type for the day could work.
+Also, the test-data functionality of `aocprep` seems to be broken.
+
