@@ -6,7 +6,7 @@ As for the previous years, I will try to timebox my solutions were all done on t
 
 ## General tools
 
-Will be using `aocprep` from 2020 again.
+Will use my hand-rolled [`aocprep`](https://github.com/Japanuspus/aocprep) from 2020.
 
 ## Day 1
 
@@ -16,3 +16,11 @@ Same as the other years, I am thinking about ways to make the parts testable wit
 Maybe using owned strings for output and defining an `Input`-type for the day could work.
 Also, the test-data functionality of `aocprep` seems to be broken.
 
+Ended up doing a variation without the double split inspired by a post on [the solution megathread](https://www.reddit.com/r/adventofcode/comments/z9ezjb/2022_day_1_solutions/iyho95s/). 
+The no-op `map_while` doesn't feel quite right though.
+```
+let elfs: Vec<i32> = itertools::unfold(
+    input_s.trim().split("\n").map(|l| l.parse::<i32>().ok()),
+    |lines| lines.map_while(|v| v).reduce(|acc, v| acc + v),
+)
+```

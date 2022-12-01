@@ -25,7 +25,23 @@ fn solution(input_s: &str) -> Result<()> {
     Ok(())
 }
 
+fn solution2(input_s: &str) -> Result<()> {
+    let elfs: Vec<i32> = itertools::unfold(
+        input_s.trim().split("\n").map(|l| l.parse::<i32>().ok()),
+        |lines| lines.map_while(|v| v).reduce(|acc, v| acc + v),
+    )
+    .sorted()
+    .rev()
+    .collect();
+
+    println!("Part 1: {}", elfs[0]);
+    println!("Part 2: {}", elfs.iter().take(3).sum::<i32>());
+    Ok(())
+}
+
 fn main() -> Result<()> {
     solution(&fs::read_to_string("input.txt")?)?;
+    println!("*** Take 2***");
+    solution2(&fs::read_to_string("input.txt")?)?;
     Ok(())
 }
