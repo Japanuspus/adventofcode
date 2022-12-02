@@ -18,22 +18,29 @@ use std::fs;
 //     distance: i32,
 // }
 
-fn solution(input_s: &str) -> Result<()> {
+fn solution(input_s: &str) -> Result<(String, String)> {
     let input: Vec<i32> = input_s
         .trim()
         .split("\n")
         .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
         .collect::<Result<_,_>>()?;
 
-    println!("Part 1: {}", input.len());
-    println!("Part 2: {}", 0);
+    let part1 = 0;
+    let part2 = 0;
+
+    Ok((part1.to_string(), part2.to_string()))
+}
+
+#[test]
+fn test_solution() -> Result<()> {
+    let res=solution(&fs::read_to_string("test00.txt")?)?;
+    assert!(res.0=="0");
+    assert!(res.1=="0");
     Ok(())
 }
 
 fn main() -> Result<()> {
-    println!("** TEST **");
-    solution(&fs::read_to_string("test00.txt")?)?;
-    println!("\n** INPUT **");
-    solution(&fs::read_to_string("input.txt")?)?;
+    let res=solution(&fs::read_to_string("input.txt")?)?;
+    println!("Part 1: {}\nPart 2: {}", res.0, res.1);
     Ok(())
 }
