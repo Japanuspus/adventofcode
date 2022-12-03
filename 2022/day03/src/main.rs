@@ -5,6 +5,10 @@ use std::fs;
 use std::collections::HashSet;
 use itertools::Itertools;
 
+fn priority(c: u8) -> u8 {
+    if c>=b'a' {1+c-b'a'} else {27+c-b'A'}
+}
+
 fn solution(input_s: &str) -> Result<(String, String)> {
     let part1: usize = input_s
         .trim()
@@ -14,10 +18,7 @@ fn solution(input_s: &str) -> Result<(String, String)> {
             let n = s.len()/2;
             let c1 = s[..n].iter().cloned().collect::<HashSet<_>>();
             let c2 = s[n..].iter().cloned().collect::<HashSet<_>>();
-            let c = c1.intersection(&c2).cloned().next().unwrap();
-            let p = if c>=b'a' {1+c-b'a'} else {27+c-b'A'};
-            //println!("{} -> {}", c as char, p);
-            p
+            priority(c1.intersection(&c2).cloned().next().unwrap())
         } as usize)
         .sum();
 
@@ -28,10 +29,7 @@ fn solution(input_s: &str) -> Result<(String, String)> {
         .tuples::<(_,_,_)>()
         .map(|(a,b,cs)| {
             let ab = a.intersection(&b).cloned().collect::<HashSet<_>>();
-            let c = ab.intersection(&cs).cloned().next().unwrap();
-            let p = if c>=b'a' {1+c-b'a'} else {27+c-b'A'};
-            // println!("{} -> {}", c as char, p);
-            p
+            priority(ab.intersection(&cs).cloned().next().unwrap())
         } as usize)
         .sum();
 
