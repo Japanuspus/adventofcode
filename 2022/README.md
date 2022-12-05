@@ -41,3 +41,19 @@ The annoyance of the day: treating strings as bytes is noisy, instead of `s[0]-'
 ```rust
     (s.as_bytes()[0] as i32)-(b'A' as i32) 
 ```
+
+## Day 3: Rucksack Reorganization
+
+Not very pretty with bytes in hash sets.
+In particular, for part two I split into tuples to iterate over chunks, so that the chunk size had to be hard coded. Would have been nicer to build the iterator and then iterate over the chunks in a for loop.
+
+## Day 4: Camp Cleanup
+
+My initial morning solution had the inelegant contains/overlap check -- had to go back and change it.
+Day 4 was the first day of using `parse_display`, which always feels like magic. 
+
+
+## Day 5: Supply Stacks
+
+Was bitten by a `trim` on the input in my skeleton-code: This is apparently the first AOC in the last two years with significant leading whitespace...
+Used [`VecDeque`](https://doc.rust-lang.org/std/collections/vec_deque/struct.VecDeque.html) for storing the stacks. For part 2 I could probaly have used `.split_off` to avoid building a buffer of the items to be moved.

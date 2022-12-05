@@ -39,14 +39,12 @@ fn solution(input_s: &str) -> Result<(String, String)> {
         .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
         .collect::<Result<_,_>>()?;
 
-    let part1 = input.iter().filter(|p| {
-        (p.a.from<=p.b.from && p.a.to>=p.b.to) 
-        || (p.b.from<=p.a.from && p.b.to>=p.a.to)
+    let part1 = input.iter().filter(|Pair{a,b}| {
+        ((b.from-a.from)*(a.to-b.to)).signum()>-1
     }).count();
-    let part2 = input.iter().filter(|p| {
-        (p.a.to >= p.b.from) && (p.a.from <= p.b.to)
-        || (p.b.to >= p.a.from) && (p.b.from <= p.a.to)
-    }).count();
+    let part2 = input.iter().filter(|Pair{a,b}| 
+        (a.to >= b.from) && (a.from <= b.to)
+    ).count();
 
     Ok((part1.to_string(), part2.to_string()))
 }
@@ -54,6 +52,7 @@ fn solution(input_s: &str) -> Result<(String, String)> {
 #[test]
 fn test_solution() -> Result<()> {
     let res=solution(&fs::read_to_string("test00.txt")?)?;
+    println!("Part 1: {}\nPart 2: {}", res.0, res.1);
     assert!(res.0=="2");
     assert!(res.1=="4");
     Ok(())

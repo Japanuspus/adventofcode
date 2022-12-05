@@ -34,6 +34,7 @@ fn solution(input_s: &str) -> Result<(String, String)> {
 #[test]
 fn test_solution() -> Result<()> {
     let res=solution(&fs::read_to_string("test00.txt")?)?;
+    println!("Part 1: {}\nPart 2: {}", res.0, res.1);
     assert!(res.0=="0");
     assert!(res.1=="0");
     Ok(())
