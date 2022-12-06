@@ -69,3 +69,5 @@ Learned about `.find_map` from the rust-analyzer hints:
 ```
 
 **extension**: Implement with mutating set of elements in window instead of building a new set for each window.
+
+Update: Tried some rewrites in this direction. Speedup was from 800us to around 250us.
