@@ -2,15 +2,17 @@
 
 use anyhow::{Result, Context};
 use std::{fs, collections::{HashSet, HashMap}, str, time::Instant};
+use itertools::Itertools;
 
-/// 800us
+
+/// 500us
 fn find_marker(s: &str, n: usize) -> Option<usize> {
     s.as_bytes().windows(n).enumerate().find_map(|(i, grp)|{
-        if grp.iter().collect::<HashSet<_>>().len()==n {Some(i+n)} else {None}
+        if grp.iter().all_unique() {Some(i+n)} else {None}
     })
 }
 
-/// 300us
+/// 275us
 fn find_marker_b(s: &str, n: usize) -> Option<usize> {
     let bs = s.as_bytes();
     let mut m: HashMap<u8, usize> = HashMap::new();
@@ -26,7 +28,7 @@ fn find_marker_b(s: &str, n: usize) -> Option<usize> {
     )
 }
 
-/// 250us
+/// 200us
 fn find_marker_c(s: &str, n: usize) -> Option<usize> {
     let bs = s.as_bytes();
     let mut m = [0u8;u8::MAX as usize];
@@ -61,7 +63,7 @@ fn test_solution() -> Result<()> {
 
 fn main() -> Result<()> {
     let input = fs::read_to_string("input.txt")?;
-    for f in [find_marker, find_marker_b, find_marker_c] {
+    for f in [find_marker, find_marker_b, find_marker_c, find_marker] {
         let tick = Instant::now();
         let res=solution(&input, &f)?;
         let elapsed = tick.elapsed();

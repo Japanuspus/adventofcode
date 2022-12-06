@@ -71,3 +71,11 @@ Learned about `.find_map` from the rust-analyzer hints:
 **extension**: Implement with mutating set of elements in window instead of building a new set for each window.
 
 Update: Tried some rewrites in this direction. Speedup was from 800us to around 250us.
+
+Update 2: Learned about `.all_unique` from reddit megathread. This is more concise -- and runs faster than building the set (since it can abort as soon as it sees the collision?). 
+
+```rust
+    s.as_bytes().windows(n).enumerate().find_map(|(i, grp)|{
+        if grp.iter().all_unique() {Some(i+n)} else {None}
+    })
+```
