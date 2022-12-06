@@ -57,3 +57,15 @@ Day 4 was the first day of using `parse_display`, which always feels like magic.
 
 Was bitten by a `trim` on the input in my skeleton-code: This is apparently the first AOC in the last two years with significant leading whitespace...
 Used [`VecDeque`](https://doc.rust-lang.org/std/collections/vec_deque/struct.VecDeque.html) for storing the stacks. For part 2 I could probaly have used `.split_off` to avoid building a buffer of the items to be moved.
+
+## Day 6: Tuning Trouble 
+
+Learned about `.find_map` from the rust-analyzer hints:
+
+```rust
+    s.as_bytes().windows(n).enumerate().find_map(|(i, grp)|{
+        if grp.iter().collect::<HashSet<_>>().len()==n {Some(i+n)} else {None}
+    })
+```
+
+**extension**: Implement with mutating set of elements in window instead of building a new set for each window.
