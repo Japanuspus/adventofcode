@@ -55,7 +55,6 @@ fn solution(input_s: &str) -> Result<(String, String)> {
                 if ln.starts_with("dir") {
                     let mut child = pwd.clone();
                     child.push(ln[4..].to_string());
-                    //println!("{:?}", &child);
                     if let Some(d) = &mut pwd_data {
                         d.children.push(child)
                     };
@@ -72,6 +71,7 @@ fn solution(input_s: &str) -> Result<(String, String)> {
         pwd_data.take().and_then(|v| dirs.insert(pwd, v));
     }
 
+    // Fill sizes map by starting from paths with the most levels and working towards root
     let mut sizes: HashMap<&FolderPath, usize> = HashMap::new();
     for (folder_path, entry) in dirs.iter().sorted_by_key(|(v, _)| -(v.len() as isize)) {
         let tot: usize = entry.files_size

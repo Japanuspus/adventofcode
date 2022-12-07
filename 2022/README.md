@@ -79,3 +79,17 @@ Update 2: Learned about `.all_unique` from reddit megathread. This is more conci
         if grp.iter().all_unique() {Some(i+n)} else {None}
     })
 ```
+
+## Day 7: No Space Left On Device
+
+Wrote a very very ugly parser. But then at least I stopped myself before doing a full recursive depth first traversal, when I realized I could just sort the paths by length and then compute the sizes starting from the longest.
+
+```rust
+let mut sizes: HashMap<&FolderPath, usize> = HashMap::new();
+for (folder_path, entry) in dirs.iter().sorted_by_key(|(v, _)| -(v.len() as isize)) {
+    let tot: usize = entry.files_size
+        + entry.children.iter().map(|c| sizes.get(c).unwrap()).sum::<usize>();
+    sizes.insert(folder_path, tot);
+}
+let part1: usize = sizes.values().filter(|&v| *v <= 100000).sum();
+```
