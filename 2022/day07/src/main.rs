@@ -1,17 +1,6 @@
-#![allow(unused_imports, dead_code)]
-
-use anyhow::{Context, Result};
+use anyhow::{Result};
 use itertools::Itertools;
-use std::{collections::HashMap, fs};
-
-use parse_display::{Display, FromStr};
-
-#[derive(Debug, Display, FromStr)]
-#[display("{size} {name}")]
-struct FileEntry {
-    size: usize,
-    name: String,
-}
+use std::{collections::HashMap, fs, time::Instant};
 
 type FolderPath = Vec<String>;
 
@@ -19,79 +8,46 @@ struct Folder {
     files_size: usize,
     children: Vec<FolderPath>,
 }
-impl Folder {
-    fn new() -> Self {
-        Self {
-            files_size: 0,
-            children: Vec::new(),
-        }
-    }
-}
 
 fn solution(input_s: &str) -> Result<(String, String)> {
     let mut dirs: HashMap<FolderPath, Folder> = HashMap::new();
     {
         let mut pwd: FolderPath = Vec::new();
-        let mut pwd_data: Option<Folder> = None;
-        for ln in input_s.trim().split("\n") {
-            if ln.starts_with('$') {
-                pwd_data.take().and_then(|v| dirs.insert(pwd.clone(), v));
-                if ln.starts_with("$ cd ") {
-                    match &ln[5..] {
-                        "/" => {
-                            pwd = Vec::new();
-                        }
-                        ".." => {
-                            pwd.pop();
-                        }
-                        a => {
-                            pwd.push(a.to_string());
+        // Trick: split on $ -- https://www.reddit.com/r/adventofcode/comments/zesk40/2022_day_7_solutions/iz8f2r7/
+        for part in input_s.trim().split('$').skip(1) {
+            let mut lines = part.trim().split('\n');
+            match lines.next() {
+                Some("ls") => {
+                    let mut d = Folder{files_size:0, children: Vec::new()};
+                    for ln in lines {
+                        if ln.starts_with("dir") {
+                            let mut child = pwd.clone();
+                            child.push(ln[4..].to_string());
+                            d.children.push(child);
+                        } else {
+                            d.files_size +=ln.split(' ').next().unwrap().parse::<usize>()?
                         }
                     }
-                } else {
-                    pwd_data = Some(Folder::new());
-                }
-            } else {
-                if ln.starts_with("dir") {
-                    let mut child = pwd.clone();
-                    child.push(ln[4..].to_string());
-                    if let Some(d) = &mut pwd_data {
-                        d.children.push(child)
-                    };
-                } else {
-                    let file_entry: FileEntry = ln
-                        .parse::<FileEntry>()
-                        .with_context(|| format!("Parsing '{}'", ln))?;
-                    if let Some(d) = &mut pwd_data {
-                        d.files_size += file_entry.size
-                    };
-                }
+                    dirs.insert(pwd.clone(), d);
+                },
+                Some("cd /") => {pwd = Vec::new();},
+                Some("cd ..") => {pwd.pop();},
+                Some(cd_a) => {pwd.push(cd_a[3..].to_string())},
+                None => panic!(),
             }
         }
-        pwd_data.take().and_then(|v| dirs.insert(pwd, v));
     }
 
     // Fill sizes map by starting from paths with the most levels and working towards root
     let mut sizes: HashMap<&FolderPath, usize> = HashMap::new();
     for (folder_path, entry) in dirs.iter().sorted_by_key(|(v, _)| -(v.len() as isize)) {
-        let tot: usize = entry.files_size
-            + entry
-                .children
-                .iter()
-                .map(|c| sizes.get(c).unwrap())
-                .sum::<usize>();
-        sizes.insert(folder_path, tot);
+        sizes.insert(folder_path, entry.files_size + entry.children.iter().map(|c| sizes.get(c).unwrap()).sum::<usize>());
     }
     let part1: usize = sizes.values().filter(|&v| *v <= 100000).sum();
 
-    let max_total: usize = 70000000 - 30000000;
     let current_total = sizes.get(&Vec::new()).unwrap();
-    let min_free = current_total - max_total;
-    let part2 = sizes
-        .values()
-        .sorted()
-        .find(|&size| *size >= min_free)
-        .unwrap();
+    let min_free = current_total +  30000000 - 70000000;
+    let part2 = sizes.values().sorted().find(|&size| *size >= min_free).unwrap();
 
     Ok((part1.to_string(), part2.to_string()))
 }
@@ -106,7 +62,9 @@ fn test_solution() -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    let res = solution(&fs::read_to_string("input.txt")?)?;
-    println!("Part 1: {}\nPart 2: {}", res.0, res.1);
+    let input = &fs::read_to_string("input.txt")?;
+    let start = Instant::now();
+    let res = solution(&input)?;
+    println!("Part 1: {}\nPart 2: {}\nRuntime: {}us", res.0, res.1, start.elapsed().as_micros());
     Ok(())
 }

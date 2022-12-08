@@ -93,3 +93,6 @@ for (folder_path, entry) in dirs.iter().sorted_by_key(|(v, _)| -(v.len() as isiz
 }
 let part1: usize = sizes.values().filter(|&v| *v <= 100000).sum();
 ```
+
+Cleanup: Nice [parser trick on the megathread](https://www.reddit.com/r/adventofcode/comments/zesk40/2022_day_7_solutions/iz8f2r7/): Split on `$`. I implemented this because my first parser was awful.
+
