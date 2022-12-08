@@ -96,3 +96,16 @@ let part1: usize = sizes.values().filter(|&v| *v <= 100000).sum();
 
 Cleanup: Nice [parser trick on the megathread](https://www.reddit.com/r/adventofcode/comments/zesk40/2022_day_7_solutions/iz8f2r7/): Split on `$`. I implemented this because my first parser was awful.
 
+## Day 8: Treetop Tree House
+
+Lost quite a bit of time because I misunderstood part 2 to include trees visible trees shadowing each other. Also, my first implementation used all manual index handling...
+```rust
+let a1 = p0.0+d1.0*(i1 as i32)+d2.0*(i2 as i32);
+let a2 = p0.1+d1.1*(i1 as i32)+d2.1*(i2 as i32);
+```
+
+For the cleanup, I picked up [`vecmath`](https://docs.rs/vecmath/latest/vecmath/) from the piston team, which allowed me to write:
+```rust
+let a = vec2_add(*p0, vec2_add(vec2_scale(*d1, i1), vec2_scale(*d2, i2)));
+```
+

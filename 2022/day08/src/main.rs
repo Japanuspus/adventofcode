@@ -3,60 +3,50 @@
 use anyhow::{Result, Context};
 use std::collections::{HashMap, HashSet};
 use std::{fs, time::Instant};
-// use ndarray::prelude::*;
-// use ndarray::Array;
+use vecmath::{vec2_add, vec2_cast, vec2_scale};
 
 fn solution(input_s: &str) -> Result<(String, String)> {
-    let input: Vec<Vec<u8>> = input_s
+    let input: Vec<Vec<i8>> = input_s
         .trim()
         .split("\n")
-        .map(|s| s.as_bytes().iter().map(|b| b-b'0').collect())
+        .map(|s| s.as_bytes().iter().map(|b| (b-b'0') as i8).collect())
         .collect();
 
-    let n:usize = input.len();
-    let m:usize = input[0].len();
-    let mut visible: HashSet<(i32,i32)> = HashSet::new();
+    let n = input.len() as i32;
+    let m = input[0].len() as i32;
+    let mut visible: HashSet<[i32;2]> = HashSet::new();
     let lanes = vec![
-        ((0,0), (1, 0), n, (0, 1), m),
-        ((0,0), (0, 1), m, (1, 0), n),
-        (((n-1) as i32,(m-1) as i32), (-1,  0), n, ( 0, -1), m),
-        (((n-1) as i32,(m-1) as i32), ( 0, -1), m, (-1,  0), n),
+        ([0    ,0    ], [ 1,  0], n, [ 0,  1], m),
+        ([0    ,0    ], [ 0,  1], m, [ 1,  0], n),
+        ([(n-1),(m-1)], [-1,  0], n, [ 0, -1], m),
+        ([(n-1),(m-1)], [ 0, -1], m, [-1,  0], n),
     ];
     for (p0,d1,n1,d2,n2) in lanes.iter() {
         for i1 in 0..*n1 {
             let mut h = -1i8;
             for i2 in 0..*n2 {
-                let a1 = p0.0+d1.0*(i1 as i32)+d2.0*(i2 as i32);
-                let a2 = p0.1+d1.1*(i1 as i32)+d2.1*(i2 as i32);
-                let v = input[a1 as usize][a2 as usize] as i8;
+                let a = vec2_add(*p0, vec2_add(vec2_scale(*d1, i1), vec2_scale(*d2, i2)));
+                let v = input[a[0] as usize][a[1] as usize];
                 if v>h {
                     h=v;
-                    visible.insert((a1, a2));
+                    visible.insert(a);
                 }
             }
         }
     } 
     let part1 = visible.len();
 
-    let mut scenic: HashMap<(i32,i32), usize> = HashMap::new();
-
+    let mut scenic: HashMap<[i32;2], usize> = HashMap::new();
     for (p0,d1,n1,d2,n2) in lanes.iter() {
         for i1 in 0..*n1 {
             let mut s: Vec<i8> = Vec::new(); 
             for i2 in 0..*n2 {
-                let a1 = p0.0+d1.0*(i1 as i32)+d2.0*(i2 as i32);
-                let a2 = p0.1+d1.1*(i1 as i32)+d2.1*(i2 as i32);
-                let v = input[a1 as usize][a2 as usize] as i8;
-                let mut visible_trees = s.iter().rev().take_while(|&t| t<&v).count();
-                if visible_trees<s.len() {visible_trees+=1;}
-                *(scenic.entry((a1, a2)).or_insert(1))*=visible_trees;
-
-                //update s to be visible trees looking back
-                // //s is a decreasing list
-                // loop {
-                //     if s.len()==0 || s.last().unwrap()>&v {break;}
-                //     s.pop();
-                // }
+                let a = vec2_add(*p0, vec2_add(vec2_scale(*d1, i1), vec2_scale(*d2, i2)));
+                let v = input[a[0] as usize][a[1] as usize];
+                let visible_trees = s.iter().rev().enumerate()
+                    .find_map(|(i, &t)| if t>=v {Some(i+1)} else {None})
+                    .unwrap_or_else(|| s.len());
+                *(scenic.entry(a).or_insert(1))*=visible_trees;
                 s.push(v);
             }
         }
