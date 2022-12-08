@@ -1,7 +1,7 @@
 #![allow(unused_imports, dead_code)]
 
 use anyhow::{Result, Context};
-use std::fs;
+use std::{fs, time::Instant};
 
 // use parse_display::{Display, FromStr};
 
@@ -41,7 +41,9 @@ fn test_solution() -> Result<()> {
 }
 
 fn main() -> Result<()> {
-    let res=solution(&fs::read_to_string("input.txt")?)?;
-    println!("Part 1: {}\nPart 2: {}", res.0, res.1);
+    let input = &fs::read_to_string("input.txt")?;
+    let start = Instant::now();
+    let res = solution(&input)?;
+    println!("Part 1: {}\nPart 2: {}\nRuntime: {}us", res.0, res.1, start.elapsed().as_micros());
     Ok(())
 }
