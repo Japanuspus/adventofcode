@@ -1,6 +1,7 @@
 [dependencies]
 anyhow = "1.0"
 itertools = "0.10"
+rayon = "1.6.0"
 vecmath = "1.0.0"
 
 [package]
