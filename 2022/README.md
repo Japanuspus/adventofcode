@@ -109,3 +109,34 @@ For the cleanup, I picked up [`vecmath`](https://docs.rs/vecmath/latest/vecmath/
 let a = vec2_add(*p0, vec2_add(vec2_scale(*d1, i1), vec2_scale(*d2, i2)));
 ```
 
+## Day 9: Rope Bridge
+
+Forgot the first rule of AOC: Never use methods - always functions.
+My initial part 1 solution used a struct with `head` and `tail` to represent the rope, and then it was too easy to add a `.step`-method to the implementation. 
+
+Good thing was that most of the code carried over nicely to part 2, and I got to play with const-generics for the first time:
+
+```rust
+fn step(rope: &mut [[i32;2]], direction: &Direction) {
+    let dh = match direction {
+        Direction::U => [0,  1], 
+        Direction::D => [0, -1], 
+        Direction::L => [-1, 0], 
+        Direction::R => [ 1, 0], 
+    };
+    rope[0] = vec2_add(rope[0], dh);
+ 
+    // Move tails
+    for h in 0..(rope.len()-1) {
+        let t = h+1; 
+        let d = vec2_sub(rope[h], rope[t]);
+        if (0..2).any(|i| d[i] < -1 || d[i]>1) {
+            for i in 0..2 {
+                rope[h+1][i]+=d[i].signum();
+            }    
+        }    
+    }
+}
+```
+
+It would have been less verbose to use a `char` to encode the directions: Would save the enum-definition in return for a default clause. 

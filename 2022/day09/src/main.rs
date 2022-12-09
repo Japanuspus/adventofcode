@@ -3,7 +3,7 @@
 use anyhow::{Result, Context};
 use itertools::Itertools;
 use std::{fs, time::Instant, collections::HashSet};
-use vecmath::{vec2_add, vec2_scale, vec2_len};
+use vecmath::{vec2_add, vec2_scale, vec2_len, vec2_sub};
 use parse_display::{Display, FromStr};
  
 #[derive(Display, FromStr, PartialEq, Debug)]
@@ -28,13 +28,15 @@ fn step(rope: &mut [[i32;2]], direction: &Direction) {
         Direction::L => [-1, 0], 
         Direction::R => [ 1, 0], 
     };
-    
     rope[0] = vec2_add(rope[0], dh);
+ 
+    // Move tails
     for h in 0..(rope.len()-1) {
-        if (0..2).any(|i| (rope[h][i]-rope[h+1][i]).abs()>1) {
+        let t = h+1; 
+        let d = vec2_sub(rope[h], rope[t]);
+        if (0..2).any(|i| d[i] < -1 || d[i]>1) {
             for i in 0..2 {
-                let d = rope[h][i]-rope[h+1][i];
-                rope[h+1][i]+=d.signum();
+                rope[h+1][i]+=d[i].signum();
             }    
         }    
     }
