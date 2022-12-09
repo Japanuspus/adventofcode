@@ -21,34 +21,6 @@ struct Step {
     distance: i32,
 }
 
-#[derive(Debug, Clone)]
-struct Rope {
-    head: [i32;2],
-    tail: [i32;2],
-}
-
-impl Rope {
-    fn new() -> Self {
-        Rope {head: [0,0], tail: [0,0]}
-    }
-    fn step(&mut self, direction: &Direction) {
-        let dh = match direction {
-            Direction::U => [0,  1], 
-            Direction::D => [0, -1], 
-            Direction::L => [-1, 0], 
-            Direction::R => [ 1, 0], 
-        };
-        self.head = vec2_add(self.head, dh);
-        if (0..2).any(|i| (self.head[i]-self.tail[i]).abs()>1) {
-            for i in 0..2 {
-                let d = self.head[i]-self.tail[i];
-                self.tail[i]+=d.signum();
-            }    
-        }
-    }
-}
-
-
 fn step(rope: &mut [[i32;2]], direction: &Direction) {
     let dh = match direction {
         Direction::U => [0,  1], 
@@ -68,8 +40,14 @@ fn step(rope: &mut [[i32;2]], direction: &Direction) {
     }
 }
 
-
-
+fn solve<const N: usize>(input: &Vec<Step>) -> usize {
+    input.iter()
+    .flat_map(|mv| (0..mv.distance).map(|_| &mv.direction))
+    .scan([[0;2];N], |rope, dir| {
+        step(rope, dir);
+        Some(rope[N-1])
+    }).unique().count()
+}
 
 fn solution(input_s: &str) -> Result<(String, String)> {
     let input: Vec<Step> = input_s
@@ -78,27 +56,8 @@ fn solution(input_s: &str) -> Result<(String, String)> {
         .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
         .collect::<Result<_,_>>()?;
 
-    let tails: HashSet<[i32;2]> = input.iter()
-    .flat_map(|mv| (0..mv.distance).map(|_| &mv.direction))
-    .scan(Rope::new(), |rope, dir| {
-        rope.step(dir);
-        Some(rope.tail)
-    }).collect();
-    //.unique().count();
-    // for r in 0..5 {
-    //     for c in 0..5 {
-    //         print!("{}", if tails.contains(&[c, 4-r]) {'#'} else {'.'});
-    //     }
-    //     println!();
-    // }
-    let part1 = tails.len();
-
-    let part2 = input.iter()
-    .flat_map(|mv| (0..mv.distance).map(|_| &mv.direction))
-    .scan([[0;2];10], |rope, dir| {
-        step(rope, dir);
-        Some(rope[9])
-    }).unique().count();
+    let part1 = solve::<2>(&input);
+    let part2 = solve::<10>(&input);
     Ok((part1.to_string(), part2.to_string()))
 }
 
