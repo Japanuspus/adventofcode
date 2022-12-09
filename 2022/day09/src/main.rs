@@ -48,6 +48,29 @@ impl Rope {
     }
 }
 
+
+fn step(rope: &mut [[i32;2]], direction: &Direction) {
+    let dh = match direction {
+        Direction::U => [0,  1], 
+        Direction::D => [0, -1], 
+        Direction::L => [-1, 0], 
+        Direction::R => [ 1, 0], 
+    };
+    
+    rope[0] = vec2_add(rope[0], dh);
+    for h in 0..(rope.len()-1) {
+        if (0..2).any(|i| (rope[h][i]-rope[h+1][i]).abs()>1) {
+            for i in 0..2 {
+                let d = rope[h][i]-rope[h+1][i];
+                rope[h+1][i]+=d.signum();
+            }    
+        }    
+    }
+}
+
+
+
+
 fn solution(input_s: &str) -> Result<(String, String)> {
     let input: Vec<Step> = input_s
         .trim()
@@ -62,15 +85,20 @@ fn solution(input_s: &str) -> Result<(String, String)> {
         Some(rope.tail)
     }).collect();
     //.unique().count();
-    for r in 0..5 {
-        for c in 0..5 {
-            print!("{}", if tails.contains(&[c, 4-r]) {'#'} else {'.'});
-        }
-        println!();
-    }
+    // for r in 0..5 {
+    //     for c in 0..5 {
+    //         print!("{}", if tails.contains(&[c, 4-r]) {'#'} else {'.'});
+    //     }
+    //     println!();
+    // }
     let part1 = tails.len();
-    let part2 = 0;
 
+    let part2 = input.iter()
+    .flat_map(|mv| (0..mv.distance).map(|_| &mv.direction))
+    .scan([[0;2];10], |rope, dir| {
+        step(rope, dir);
+        Some(rope[9])
+    }).unique().count();
     Ok((part1.to_string(), part2.to_string()))
 }
 
