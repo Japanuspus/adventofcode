@@ -140,3 +140,7 @@ fn step(rope: &mut [[i32;2]], direction: &Direction) {
 ```
 
 It would have been less verbose to use a `char` to encode the directions: Would save the enum-definition in return for a default clause. 
+
+## Day 10: Cathode-Ray Tube (34us)
+
+Worked on first try. Spent most time on getting `parse_display` to accept my enum formatting, and on inserting newlines into the part 2 result...

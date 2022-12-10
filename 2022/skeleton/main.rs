@@ -1,6 +1,6 @@
 #![allow(unused_imports, dead_code)]
 
-use anyhow::{Result, Context};
+use anyhow::{Context, Result};
 use std::{fs, time::Instant};
 
 // use parse_display::{Display, FromStr};
@@ -18,32 +18,46 @@ use std::{fs, time::Instant};
 //     distance: i32,
 // }
 
-fn solution(input_s: &str) -> Result<(String, String)> {
-    let input: Vec<i32> = input_s
-        .trim()
+fn solution(input_s: &str) -> Result<[String; 2]> {
+    let input: Vec<i32> = input_s.trim_end()
         .split("\n")
         .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
-        .collect::<Result<_,_>>()?;
+        .collect::<Result<_, _>>()?;
 
     let part1 = 0;
     let part2 = 0;
 
-    Ok((part1.to_string(), part2.to_string()))
+    Ok([part1.to_string(), part2.to_string()])
 }
+
+// Make it simple to compare timing for multiple solutions
+type Solution = dyn Fn(&str) -> Result<[String; 2]>;
+const SOLUTIONS: [(&str, &Solution); 1] = [("Original", &solution)];
 
 #[test]
 fn test_solution() -> Result<()> {
-    let res=solution(&fs::read_to_string("test00.txt")?)?;
-    println!("Part 1: {}\nPart 2: {}", res.0, res.1);
-    assert!(res.0=="0");
-    assert!(res.1=="0");
+    let input = &fs::read_to_string("test00.txt")?;
+    for (name, solution) in SOLUTIONS {
+        let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
+        println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
+        assert!(res[0] == "0");
+        assert!(res[1] == "0");
+    }
     Ok(())
 }
 
 fn main() -> Result<()> {
     let input = &fs::read_to_string("input.txt")?;
-    let start = Instant::now();
-    let res = solution(&input)?;
-    println!("Part 1: {}\nPart 2: {}\nRuntime: {}us", res.0, res.1, start.elapsed().as_micros());
+    for (_, solution) in SOLUTIONS.iter().cycle().take(10) {
+        solution(&input)?;
+    } //warmup
+    for (name, solution) in SOLUTIONS {
+        let start = Instant::now();
+        let res = solution(&input)?;
+        println!(
+            "---\n{} ({} us)\nPart 1: {}\nPart 2: {}",
+            name, start.elapsed().as_micros(), res[0], res[1],
+        );
+    }
     Ok(())
 }
