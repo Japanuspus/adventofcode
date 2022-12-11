@@ -144,3 +144,8 @@ It would have been less verbose to use a `char` to encode the directions: Would 
 ## Day 10: Cathode-Ray Tube (34us)
 
 Worked on first try. Spent most time on getting `parse_display` to accept my enum formatting, and on inserting newlines into the part 2 result...
+
+## Day 11: Monkey in the Middle (9378us)
+
+Another solution that worked on first try. Except for the overflow on part 2...
+
