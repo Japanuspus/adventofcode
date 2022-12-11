@@ -69,6 +69,7 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
 
     let mut items = items0.clone();
     let mut inspection_counts = vec![0usize;input.len()];
+    let bigmod = input.iter().map(|m| m.modulo).product::<usize>();
     for _ in 0..10000 {
         for m in &input {
             // grab list of items for this monkey
@@ -81,11 +82,11 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
                 let w = match m.op {'+' => a+b, '*' => a*b, _ => panic!()};
                 // destination
                 let dst = if (w%m.modulo)==0 {m.totrue} else {m.tofalse};
-                items[dst].push(w);
+                items[dst].push(w%bigmod);
             }
         }
     }
-    let part2 = inspection_counts.iter().sorted().rev().take(2).map(|v| *v as u128).product::<u128>();
+    let part2 = inspection_counts.iter().sorted().rev().take(2).product::<usize>();
 
     Ok([part1.to_string(), part2.to_string()])
 }
