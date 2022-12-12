@@ -36,16 +36,16 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
 
     let nbs = [[0,1], [1,0], [0,-1], [-1,0]];
 
-    let mut work = vec![(0usize, s.clone())];
+    let mut work = vec![(0usize, e.clone())];
     let mut visited: HashMap<[i32;2], usize> = HashMap::new();
-    visited.insert(s.clone(), 0);
+    visited.insert(e.clone(), 0);
     while let Some((d, p)) = work.pop() {
         let d2 = d+1;
         for p2 in nbs.iter()
             .map(|nb| vec2_add(p, *nb))
             .filter(|p2|
                 h.get(&p)
-                .and_then(|hp| h.get(p2).and_then(|&hp2| Some(hp2<=hp+1)))
+                .and_then(|hp| h.get(p2).and_then(|hp2| Some(*hp<=hp2+1)))
                 .unwrap_or(false)
             ) {
             if let Some(v) = visited.get(&p2) {
@@ -65,9 +65,9 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
     //     }
     //     println!();
     // }
+    let part1 = visited.get(&s).unwrap();
   
-    let part1 = visited.get(&e).unwrap();
-    let part2 = 0;
+    let part2 = h.iter().filter_map(|(p, v)| if *v==b'a' {visited.get(p)} else {None}).min().unwrap();
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -78,7 +78,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert!(res[0] == "31");
-    assert!(res[1] == "0");
+    assert!(res[1] == "29");
     Ok(())
 }
 
