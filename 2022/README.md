@@ -149,3 +149,7 @@ Worked on first try. Spent most time on getting `parse_display` to accept my enu
 
 Another solution that worked on first try. Except for the overflow on part 2...
 
+## Day 12: Hill Climbing Algorithm (38.3ms)
+
+Did flood fill which was lazy for part 1 but made part 2 a simple modification.
+Did not precompute the connections.
