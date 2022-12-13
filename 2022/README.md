@@ -154,7 +154,7 @@ Another solution that worked on first try. Except for the overflow on part 2...
 Did flood fill which was lazy for part 1 but made part 2 a simple modification.
 Did not precompute the connections.
 
-## Day 13: (1130us)
+## Day 13: Distress Signal (1130us)
 
 First day with the `nom` parser this year. Parser itself was super compact
 
@@ -169,7 +169,7 @@ fn parse_packet(s: &str) -> IResult<&str, Value> {
     nom::branch::alt((lp, lv))(s)
 }
 ```
-..., but getting out the result is quite verbose:
+..., but getting out the result nicely is quite verbose:
 ```rust
 impl std::str::FromStr for Value {
     type Err = nom::error::Error<String>;
@@ -184,11 +184,29 @@ impl std::str::FromStr for Value {
     }
 }
 ```
-I wonder if I have overlooked some convenience function.
+I wonder if I have overlooked some convenience function. *Update*: just did `.unwrap().0`...
 
 More fundamentally, the recursive data structure made for som fun with the borrow checker when trying to write a generic comparison to handle all the vector cases.
+
 In the end, I managed a good solution by implementing `fn value_iter(v: &Value) -> Box<dyn Iterator<Item=&Value> + '_> {`.
 
 ### Extensions:
 - Use `std::Ordering` instead of `Option<bool>`
 - Stretch: is there a make solution based on `(value,depth)`? (Must support empty lists)
+
+### Update - `std::Ordering` was a good idea
+
+Combined with the `.iter()`-implementation and `zip_longest` the comparison became super compact:
+
+```rust
+fn compare_value(v1: &Value, v2: &Value) -> Ordering {
+    v1.iter().zip_longest(v2.iter()).map(|z|
+        match z {
+            EitherOrBoth::Both(Value::Number(a), Value::Number(b)) => a.cmp(b),
+            EitherOrBoth::Both(a, b) => compare_value(a, b),
+            EitherOrBoth::Left(_) => Ordering::Greater,
+            EitherOrBoth::Right(_) => Ordering::Less,
+       }
+    ).skip_while(|c| c.is_eq()).next().unwrap_or(Ordering::Equal)
+}
+```
