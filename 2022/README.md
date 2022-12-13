@@ -153,3 +153,42 @@ Another solution that worked on first try. Except for the overflow on part 2...
 
 Did flood fill which was lazy for part 1 but made part 2 a simple modification.
 Did not precompute the connections.
+
+## Day 13: (1130us)
+
+First day with the `nom` parser this year. Parser itself was super compact
+
+```rust
+fn parse_packet(s: &str) -> IResult<&str, Value> {
+    let ll = nom::multi::separated_list0(char(','), parse_packet);
+    let lp = nom::combinator::map(
+        nom::sequence::delimited(char('['), ll, char(']')),
+        |v| Value::List(v),
+    );
+    let lv = nom::combinator::map(nom::character::complete::i32, |v| Value::Number(v));
+    nom::branch::alt((lp, lv))(s)
+}
+```
+..., but getting out the result is quite verbose:
+```rust
+impl std::str::FromStr for Value {
+    type Err = nom::error::Error<String>;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match parse_packet(s).finish() {
+            Ok((_remaining, v)) => Ok(v),
+            Err(nom::error::Error { input, code }) => Err(nom::error::Error {
+                input: input.to_string(),
+                code,
+            }),
+        }
+    }
+}
+```
+I wonder if I have overlooked some convenience function.
+
+More fundamentally, the recursive data structure made for som fun with the borrow checker when trying to write a generic comparison to handle all the vector cases.
+In the end, I managed a good solution by implementing `fn value_iter(v: &Value) -> Box<dyn Iterator<Item=&Value> + '_> {`.
+
+### Extensions:
+- Use `std::Ordering` instead of `Option<bool>`
+- Stretch: is there a make solution based on `(value,depth)`? (Must support empty lists)
