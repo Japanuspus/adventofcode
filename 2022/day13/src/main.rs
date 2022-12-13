@@ -1,8 +1,10 @@
 #![allow(unused_imports, dead_code)]
 
 use anyhow::{Context, Result};
+use itertools::Itertools;
 use nom::bytes::complete::tag;
 use nom::character::complete::char;
+use std::cmp::Ordering;
 use std::{fs, time::Instant};
 use nom; //::character::complete::i32;
 use nom::{IResult, Finish};
@@ -60,19 +62,22 @@ fn check_value(v1: &Value, v2: &Value) -> Option<bool> {
 }
 
 fn solution(input_s: &str) -> Result<[String; 2]> {
-    let input: Vec<Vec<Value>> = input_s.trim_end()
-        .split("\n\n")
-        .map(|pair| 
-            pair.split("\n").map(|ln| ln.parse()).collect::<Result<_, _>>()
-        )
+    let input: Vec<Value> = input_s.trim_end()
+        .split("\n")
+        .filter(|ln| ln.len()>0)
+        .map(|ln| ln.parse())
         .collect::<Result<_, _>>()?;
-    
-    // for (i, pair) in input.iter().enumerate() {
-    //     println!("{}: {:?}", i, check_value(&pair[0], &pair[1]));
-    // }
 
-    let part1: usize = input.iter().enumerate().filter_map(|(i,p)| if check_value(&p[0], &p[1]).unwrap() {Some(i+1)} else {None}).sum();
-    let part2 = 0;
+    let part1: usize = input.chunks(2).enumerate().filter_map(|(i,p)| if check_value(&p[0], &p[1]).unwrap() {Some(i+1)} else {None}).sum();
+
+    // sort by index
+    let mut input = input;
+    input.push(Value::List(vec![Value::List(vec![Value::Number(2)])]));
+    input.push(Value::List(vec![Value::List(vec![Value::Number(6)])]));
+
+    let mut ivec: Vec<usize> = (0..input.len()).collect();
+    ivec.sort_by(|&a, &b| if check_value(&input[a], &input[b]).unwrap() {Ordering::Less} else {Ordering::Greater});
+    let part2 = ivec.iter().enumerate().filter_map(|(i, &v)| if v>=input.len()-2 {Some(i+1)} else {None}).product::<usize>();
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -83,7 +88,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert!(res[0] == "13");
-    assert!(res[1] == "0");
+    assert!(res[1] == "140");
     Ok(())
 }
 
