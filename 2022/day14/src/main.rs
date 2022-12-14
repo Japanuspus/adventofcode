@@ -40,7 +40,6 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
     let max_depth = rocks.iter().map(|p| p[1]).max().unwrap();
 
     let mut sand: HashSet<[i16;2]> = HashSet::new();
-
     'outer: loop {
         let mut p = [500,0];
         while let Some(p2) = [0,-1,1].iter().map(|dx| [p[0]+dx, p[1]+1]).filter(|p2| !rocks.contains(p2) && !sand.contains(p2)).next() {
@@ -49,9 +48,19 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
         }
         sand.insert(p);
     }
-
     let part1 = sand.len();
-    let part2 = 0;
+
+    let mut sand: HashSet<[i16;2]> = HashSet::new();
+    loop {
+        let mut p = [500,0];
+        while let Some(p2) = [0,-1,1].iter().map(|dx| [p[0]+dx, p[1]+1]).filter(|p2| !rocks.contains(p2) && !sand.contains(p2)).next() {
+            p = p2;
+            if p[1]>max_depth {break}
+        }
+        sand.insert(p);
+        if p[1]==0 {break}
+    }
+    let part2 = sand.len();
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -62,7 +71,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert!(res[0] == "24");
-    assert!(res[1] == "0");
+    assert!(res[1] == "93");
     Ok(())
 }
 
