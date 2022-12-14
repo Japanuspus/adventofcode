@@ -210,3 +210,12 @@ fn compare_value(v1: &Value, v2: &Value) -> Ordering {
     ).skip_while(|c| c.is_eq()).next().unwrap_or(Ordering::Equal)
 }
 ```
+
+## Day 14: Regolith Reservoir (170ms)
+
+Did a very naive solution on the train.
+
+**Extension**: After finishing I realized that you can always start the motion of the next block of sand at the next-to-rest position of the previous block. More abstractly, and probably easier to code, this is really just depth-first traversal.
+
+
+
