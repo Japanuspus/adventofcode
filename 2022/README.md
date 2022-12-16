@@ -217,5 +217,11 @@ Did a very naive solution on the train.
 
 **Extension**: After finishing I realized that you can always start the motion of the next block of sand at the next-to-rest position of the previous block. More abstractly, and probably easier to code, this is really just depth-first traversal.
 
+## Day 15: Beacon Exclusion Zone (1.5s)
 
+Not pretty. Ended up spending a long time getting a good idea for part 2 (rotated coords), but then I coded the brute-force instead. And then it failed silently because of an i32 overflow...
+
+**Extension**: Solve part 2 in rotated coordinate system.
+
+## Day 16: Proboscidea Volcanium
 
