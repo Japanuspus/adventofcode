@@ -19,52 +19,121 @@ struct Position {
     y: i32,
 }
 
+fn make_edges(sensors: &Vec<([i32;2], u32)>, y0: i32, m: i32) -> BTreeMap::<i32, i32> {
+    let mut es = BTreeMap::new();
+    for (&x, r) in sensors.iter().filter_map(
+        |([x,y], range)| range.checked_sub(y.abs_diff(y0)).and_then(|r| Some((x, r as i32)))
+    ) {
+        *(es.entry(x-r).or_default())+=1;
+        *(es.entry(x+r+1).or_default())-=1;
+    };
+    es.entry(0).or_default();
+    es.entry(m).or_default();
+    es
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+enum AR {
+    Add,
+    Remove,
+}
+
 fn solution(input_s: &str, y0: i32) -> Result<[String; 2]> {
     let input: Vec<Row> = input_s.trim_end()
         .split("\n")
         .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
         .collect::<Result<_, _>>()?;
 
-    // // map start of intervals to ends. both inclusive, i.e. 0,0 means an interval with only 0
-    // let mut starts: BTreeMap::<i32, i32> = input.iter().filter_map(|r| {
-    //     let range = r.beacon.x.abs_diff(r.sensor.x) + r.beacon.y.abs_diff(r.sensor.y);
-    //     let dy = r.sensor.y.abs_diff(y0);
-    //     range.checked_sub(dy).and_then(|row_range| Some((r.sensor.x-row_range as i32, r.sensor.x+row_range as i32)))
-    // }).collect();
-    // let mut ends: BTreeSet::<i32> = BTreeSet::new();
-    
-    // let mut x=*(starts.first_entry().unwrap().get());
-    
-    // first_key_value().unwrap();
-    // loop {
-    //     if starts.first_entry().and_then(|&v| v==x).unwrap_or(false) {}
-    // }
+    let sensors: Vec<([i32;2], u32)> = input.iter()
+        .map(|r| (
+            [r.sensor.x, r.sensor.y],
+            r.beacon.x.abs_diff(r.sensor.x) + r.beacon.y.abs_diff(r.sensor.y)
+        )).collect();
 
-    // intervals -> [start, 1], [end,-1]
-    let mut edges: BTreeSet::<[i32;2]> = BTreeSet::new();
-    for r in &input {
-        let range = r.beacon.x.abs_diff(r.sensor.x) + r.beacon.y.abs_diff(r.sensor.y);
-        let dy = r.sensor.y.abs_diff(y0);
-        if let Some(row_range) = range.checked_sub(dy) {
-            edges.insert([r.sensor.x-row_range as i32, 1]);
-            edges.insert([r.sensor.x+row_range as i32, -1]);
-        }
-    };
-    let edges = edges;
+    let edges: BTreeSet::<[i32;2]> = sensors.iter().filter_map(
+        |([x,y], range)| range.checked_sub(y.abs_diff(y0)).and_then(|r| Some((x, r as i32)))
+    ).flat_map(|(&x, r)| [[x-r,-1],[x+r,1]].into_iter()).collect();
 
     let mut active = 0;
     let mut x0 = 0;
     let mut cover = 0;
     for [x,v] in edges.iter() {
         if active>0 {cover+=x-x0;}
-        active+=v;
+        active-=v;
         x0=*x;
     }
     let part1 = cover;
-    let part2 = 0;
+
+
+    let m = 2*y0;
+    let mut part2 = -1;
+    'outer: for y in 0..(m+1) {
+        let mut active = 0;
+        let es = make_edges(&sensors, y, m); // always has entries at 0 and m
+        //println!("{}: {:?}", y, &es);
+        for (x,v) in es.iter() {
+            active+=v;
+            if active==0 && *x>=0 && *x<=m {
+                let pp2 = *x as isize * 4000000isize+y as isize;
+                println!("\n xy {},{} -> {}", x, y, pp2);
+                let mut ok=true;
+                for s in sensors.iter() {
+                    let sd = s.0[0].abs_diff(*x) + s.0[1].abs_diff(y);
+                    if sd<=s.1 {
+                        ok=false;
+                    }
+                    println!("dist-range {:06} ok: {} > range: {}, dist: {} @ {:?}", 
+                        sd-s.1, !(sd<=s.1), s.1, sd, s.0);
+                }
+                if ok {
+                    part2 = pp2;
+                }
+                // println!("{}: {:?}", y, &es);
+                // break 'outer;
+            }
+        }    
+    } 
+
+    // // Part 2: use u,v -coordinates
+    // let m = 2*y0;
+    // // u = x+y
+    // // v = x-y
+    // // store regions as [[v1, v2],[u1, u2]]
+    // // outer bound is abs(v) < m - abs(m-u)
+    // let regions: Vec::<[[i32;2];2]> = sensors.iter().map(|([x,y],r)| {
+    //     let u=x+y;
+    //     let v=x-y;
+    //     [[v-*r as i32, v+*r as i32], [u-*r as i32, u+*r as i32]]
+    // }).collect();
+    // let mut u_edges: BTreeSet::<(i32, AR, &[[i32;2];2])> = regions.iter().flat_map(|r| [(r[1][0], AR::Add, r), (r[1][1], AR::Remove, r)].into_iter()).collect();
+    // let mut active: BTreeSet::<[i32;2]> = BTreeSet::new();
+    // let u = w.iter().next().unwrap().0;
+    // loop {
+    //     let mut active_modified = false;
+    //     //let mut next_u = 2*m;
+    //     while let Some(w1) = w.iter().next() {
+    //         if w1.0 == u {
+    //             let r = w.pop_first().unwrap();
+    //             match r.1 {
+    //                 AR::Add =>{active.remove(r.2.0.clone())},
+    //                 AR::Remove => {active.insert(r.2.0.clone())},
+    //             }
+    //         } else {
+    //             //next_u = w1.0;
+    //             break;
+    //         }
+    //     };
+    //     u +=1;
+    // }
+    // if active_modified {
+    //     // update observation bounds to be the region that spans 0;
+    // }
+    // let part2 = 0;
 
     Ok([part1.to_string(), part2.to_string()])
 }
+
+
 
 #[test]
 fn test_solution() -> Result<()> {
@@ -72,7 +141,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input, 10)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert!(res[0] == "26");
-    assert!(res[1] == "0");
+    assert!(res[1] == "56000011");
     Ok(())
 }
 
