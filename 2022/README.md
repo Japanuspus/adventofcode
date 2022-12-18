@@ -222,6 +222,23 @@ Did a very naive solution on the train.
 Not pretty. Ended up spending a long time getting a good idea for part 2 (rotated coords), but then I coded the brute-force instead. And then it failed silently because of an i32 overflow...
 
 **Extension**: Solve part 2 in rotated coordinate system.
+- Find possible isolated values for u and v separately and test candidates (approx. 100)
 
 ## Day 16: Proboscidea Volcanium
 
+Use bitfields for set.
+
+## Day 17 Pyroclastic Flow
+
+The tetris day.
+Made a solution with bitfields - but they really should be unions of `[u8;4]` and `u32` to be fast.
+
+**Open**: Deep thoughts about the cycles.
+
+**Extension**: Use bit unions?
+
+## Day 18: Boiling Boulders (2ms)
+
+Used BFS to map exterior while counting external surfaces. Seems pretty optimal.
+
+Only clunkyness was some error mapping in going from `Vec` to array, and my bounds handling for the exterior.

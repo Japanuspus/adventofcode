@@ -2,22 +2,7 @@
 
 use anyhow::{Context, Result};
 use vecmath::{vec2_add, vec3_add};
-use std::{fs, time::Instant, collections::HashSet};
-
-// use parse_display::{Display, FromStr};
-
-// #[derive(Display, FromStr, PartialEq, Debug)]
-// enum Direction {
-//     #[display("forward")]
-//     Forward,
-// }
-
-// #[derive(Debug, Display, FromStr)]
-// #[display("{direction} {distance}")]
-// struct Step {
-//     direction: Direction,
-//     distance: i32,
-// }
+use std::{fs, time::Instant, collections::{HashSet, VecDeque}};
 
 type Coord = [i8;3];
 
@@ -39,7 +24,24 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
     ];
 
     let part1:usize = droplets.iter().map(|d| nbs.iter().filter(|&nb| !droplets.contains(&vec3_add(*d,*nb))).count()).sum();
-    let part2 = 0;
+
+    // flood-fill exterior
+    let vmin: Coord = (0..3usize).map(|i| droplets.iter().map(|d| d[i]-1).min().unwrap()).collect::<Vec<_>>().try_into().unwrap();
+    let vmax: Coord = (0..3usize).map(|i| droplets.iter().map(|d| d[i]+1).max().unwrap()).collect::<Vec<_>>().try_into().unwrap();
+    let mut exterior: HashSet<Coord> = HashSet::new();
+    let mut frontier: VecDeque<Coord> = VecDeque::new();
+    frontier.push_back(vmin.clone());
+    let mut part2 = 0;
+    while let Some(p) = frontier.pop_front() {
+        if exterior.contains(&p) {continue};
+        for nb in nbs.iter().map(|d| vec3_add(p, *d)) {
+            if nb.iter().zip(vmin.iter()).any(|(v, bound)| v<bound) {continue};
+            if nb.iter().zip(vmax.iter()).any(|(v, bound)| v>bound) {continue};
+            if droplets.contains(&nb) {part2+=1; continue}
+            frontier.push_back(nb);
+        }
+        exterior.insert(p);
+    }
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -50,7 +52,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert!(res[0] == "64");
-    assert!(res[1] == "0");
+    assert!(res[1] == "58");
     Ok(())
 }
 
@@ -66,35 +68,3 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-
-// // Make it simple to compare timing for multiple solutions
-// type Solution = dyn Fn(&str) -> Result<[String; 2]>;
-// const SOLUTIONS: [(&str, &Solution); 1] = [("Original", &solution)];
-
-// #[test]
-// fn test_solution() -> Result<()> {
-//     let input = &fs::read_to_string("test00.txt")?;
-//     for (name, solution) in SOLUTIONS {
-//         let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
-//         println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
-//         assert!(res[0] == "0");
-//         assert!(res[1] == "0");
-//     }
-//     Ok(())
-// }
-
-// fn main() -> Result<()> {
-//     let input = &fs::read_to_string("input.txt")?;
-//     for (_, solution) in SOLUTIONS.iter().cycle().take(10) {
-//         solution(&input)?;
-//     } //warmup
-//     for (name, solution) in SOLUTIONS {
-//         let start = Instant::now();
-//         let res = solution(&input)?;
-//         println!(
-//             "---\n{} ({} us)\nPart 1: {}\nPart 2: {}",
-//             name, start.elapsed().as_micros(), res[0], res[1],
-//         );
-//     }
-//     Ok(())
-// }
