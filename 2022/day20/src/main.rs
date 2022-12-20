@@ -29,23 +29,11 @@ fn check_ring(ring: &Ring) -> bool {
     )
 }
 
-fn solution(input_s: &str) -> Result<[String; 2]> {
-    let input: Vec<i32> = input_s.trim_end()
-        .split("\n")
-        .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
-        .collect::<Result<_, _>>()?;
-
-    let n = input.len();
-    let mut ring: Vec<[u16;2]> = (0..n).into_iter()
-        .map(|w| [
-            ((w as isize)-1isize).rem_euclid(n as isize) as u16,
-            ((w as isize)+1isize).rem_euclid(n as isize) as u16,
-        ]).collect();
-    if !check_ring(&ring) {
-        panic!();
-    }
-    for (idx, &val) in input.iter().enumerate() {
+fn process_ring(ring: &mut Ring, values: &[i32], mult: isize) {
+    let n = values.len();
+    for (idx, &val) in values.iter().enumerate() {
         if val==0 {continue};
+        let val = (val as isize * mult)%((n-1) as isize);
         let (d, dbar) = if val<0 {(0,1)} else {(1, 0)};
         // fuse
         let nbs = ring[idx];
@@ -62,11 +50,34 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
         ring[cur as usize][dbar]=idx as u16;
         ring[idx] = if d>0 {[prev, cur]} else {[cur, prev]};
     }
+}
 
+fn solution(input_s: &str) -> Result<[String; 2]> {
+    let input: Vec<i32> = input_s.trim_end()
+        .split("\n")
+        .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
+        .collect::<Result<_, _>>()?;
+
+    let n = input.len();
+    let mut ring: Vec<[u16;2]> = (0..n).into_iter()
+        .map(|w| [
+            ((w as isize)-1isize).rem_euclid(n as isize) as u16,
+            ((w as isize)+1isize).rem_euclid(n as isize) as u16,
+        ]).collect();
+    if !check_ring(&ring) {
+        panic!();
+    }
+    let mut ring2 = ring.clone();
+
+    process_ring(&mut ring, &input, 1);
     let idx0 = input.iter().enumerate().find_map(|(i, v)| if *v==0 {Some(i)} else {None}).unwrap();
     let part1: isize = traverse(&ring, idx0, 1).skip(999).step_by(1000).take(3).map(|idx| input[idx] as isize).sum();
 
-    let part2 = 0;
+    let key = 811589153isize;
+    for _ in 0..10 {
+        process_ring(&mut ring2, &input, key);
+    }
+    let part2: isize = traverse(&ring2, idx0, 1).skip(999).step_by(1000).take(3).map(|idx| key * input[idx] as isize).sum();
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -77,7 +88,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert!(res[0] == "3");
-    assert!(res[1] == "0");
+    assert!(res[1] == "1623178306");
     Ok(())
 }
 

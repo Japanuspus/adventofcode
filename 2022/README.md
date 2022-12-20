@@ -242,3 +242,11 @@ Made a solution with bitfields - but they really should be unions of `[u8;4]` an
 Used BFS to map exterior while counting external surfaces. Seems pretty optimal.
 
 Only clunkyness was some error mapping in going from `Vec` to array, and my bounds handling for the exterior.
+
+## Day 20: Grove Positioning System (300ms)
+
+Coded my first solution to use input value directly as key, without noticing that the real input had duplicates. Was accepted by the `collec::<HashMap<...>>`, so took me a debug session to spot he issue.
+
+**Extension** Use a typed indexing system. `typed_vec` is one that looks appicable.
+
+**Extension** Use a more optimized shuffle value that chooses the shortest route between left and right.
