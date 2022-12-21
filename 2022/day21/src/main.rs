@@ -12,25 +12,25 @@ fn to_id(s: &str) -> Id {
 
 #[derive(Display, FromStr, PartialEq, Debug)]
 #[display("{lhs} {op} {rhs}")]
-struct Operation {
-    lhs: String,
-    rhs: String,
+struct Operation<T> {
+    lhs: T,
+    rhs: T,
     op: char,
 }
 
 #[derive(Display, FromStr, PartialEq, Debug)]
-enum Job {
+enum Job<T> {
     #[display("{0}")]
-    Op(Operation),
+    Op(Operation<T>),
     #[display("{0}")]
     Num(isize),
 }
 
 #[derive(Display, FromStr, PartialEq, Debug)]
 #[display("{name}: {job}")]
-struct Monkey {
+struct Monkey<T> {
     name: String,
-    job: Job,
+    job: Job<T>,
 }
 
 fn compute(a: isize, b: isize, op: char) -> isize {
@@ -43,35 +43,41 @@ fn compute(a: isize, b: isize, op: char) -> isize {
     }
 }
 
-fn parse(input_s: &str) -> Result<HashMap<String, Job>> {
+fn parse(input_s: &str) -> Result<HashMap<Id, Job<Id>>> {
     input_s.trim_end()
         .split("\n")
         .map(|s| {
             s
-            .parse::<Monkey>()
+            .parse::<Monkey<String>>()
             .with_context(|| format!("Parsing {}", s))
-            .and_then(|m| Ok((m.name, m.job)))
+            .and_then(|m| Ok((
+                to_id(&m.name), 
+                match m.job {
+                    Job::Op(Operation{lhs, rhs, op}) => Job::Op(Operation{lhs: to_id(&lhs), rhs: to_id(&rhs), op}),
+                    Job::Num(v) => Job::Num(v),
+                }
+            )))
         }).collect::<Result<_, _>>()
 }
 
 fn solution_1(input_s: &str) -> Result<isize> {
     let jobs = parse(input_s)?;
     
-    let mut values: HashMap<&str, isize> = jobs.iter().filter_map(|(name, job)| {
+    let mut values: HashMap<Id, isize> = jobs.iter().filter_map(|(name, job)| {
             match job {
-                Job::Num(v) => Some((&name[..], *v)),
+                Job::Num(v) => Some((*name, *v)),
                 _ => None,
             }
         }).collect();
-    let mut w: Vec<&str> = vec!["root"];
+    let mut w: Vec<Id> = vec![to_id("root")];
     while let Some(&d) = w.iter().rev().next() {
-        if values.contains_key(d) {w.pop(); continue;}
-        match &jobs[d] {
+        if values.contains_key(&d) {w.pop(); continue;}
+        match &jobs[&d] {
             Job::Op(Operation{lhs, rhs, op}) => {
-                match (values.get(&lhs[..]), values.get(&rhs[..])) {
-                    (None, None) => {w.push(lhs); w.push(rhs);}
-                    (None, _) => {w.push(lhs);}
-                    (_, None) => {w.push(rhs);}
+                match (values.get(lhs), values.get(rhs)) {
+                    (None, None) => {w.push(*lhs); w.push(*rhs);}
+                    (None, _) => {w.push(*lhs);}
+                    (_, None) => {w.push(*rhs);}
                     (Some(a), Some(b)) => {
                         values.insert(d, compute(*a, *b, *op));
                         w.pop();
@@ -81,7 +87,7 @@ fn solution_1(input_s: &str) -> Result<isize> {
             Job::Num(_) => {panic!("Num monkey not registered in values")}
         }
     }
-    Ok(values["root"])
+    Ok(values[&to_id("root")])
 }
 
 fn solution(input_s: &str) -> Result<[String; 2]> {
