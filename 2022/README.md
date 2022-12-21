@@ -250,3 +250,7 @@ Coded my first solution to use input value directly as key, without noticing tha
 **Extension** Use a typed indexing system. `typed_vec` is one that looks appicable.
 
 **Extension** Use a more optimized shuffle value that chooses the shortest route between left and right.
+
+## Day 21: Monkey Math (3ms)
+
+Missed the fact that the graph was a tree, and thought long and hard about algebraic reductions before just doing a simple recursive-style solve...
