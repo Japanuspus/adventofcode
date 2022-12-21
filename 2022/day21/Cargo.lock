@@ -22,6 +22,7 @@ name = "day21"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "either",
  "itertools",
  "parse-display",
  "regex",
