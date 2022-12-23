@@ -4,25 +4,10 @@ use anyhow::{Context, Result};
 use nom::{self, error::ErrorKind, IResult};
 use std::{fs, time::Instant, collections::HashMap};
 
-// use parse_display::{Display, FromStr};
-
-// #[derive(Display, FromStr, PartialEq, Debug)]
-// enum Direction {
-//     #[display("forward")]
-//     Forward,
-// }
-
-// #[derive(Debug, Display, FromStr)]
-// #[display("{direction} {distance}")]
-// struct Step {
-//     direction: Direction,
-//     distance: i32,
-// }
-
 type Pos = [u16;2];
 type Tile = [Pos;4]; //>v<^
 
-fn parse_board(s: &str) -> (Pos, HashMap<Pos, Tile>) {
+fn parse_board_1(s: &str) -> (Pos, HashMap<Pos, Tile>) {
     // min and max values in each column
     let mut col_min: HashMap<u16, u16> = HashMap::new();
     let mut col_max: HashMap<u16, u16> = HashMap::new();
@@ -65,6 +50,23 @@ fn parse_board(s: &str) -> (Pos, HashMap<Pos, Tile>) {
     let (xm,_) = s.as_bytes().iter().enumerate().find(|(_, &c)| c!=b' ').unwrap();
     ([xm as u16 +1, 1], m)
 }
+
+fn regions_to_cube(r: Vec<[u8;2]>) {
+    //r: [col, row] of region 
+    // First region
+    // - face at [0,0,1] with outward normal [0,0,1]
+    // - basis: [[1, 0, 0], [0, 1, 0]]
+    // 
+    // (n, bx, by) = ([0,0,1], [[1, 0, 0], [0, 1, 0]]) "UP" -> [0, 1, 0], [[1,0,0],[0,0,-1]]
+    // by rot about n, bx
+}
+// my input 
+//  12      
+//  3
+// 45
+// 6
+// Maps for right, down, left, righ
+// 1 -> [2,0], [3, 1], [6, 0], 
 
 fn parse_path(s: &str) -> IResult<&str, Vec<(i32, char)>> {
     nom::multi::many1(
