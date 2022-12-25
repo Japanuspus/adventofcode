@@ -260,3 +260,6 @@ For part 2, I missed the fact that the dependency-graph was a tree, and thought 
 Thought I was goin to need interior mutability for caching blizzard positions, but in the end, passing around `&mut`-references was fine.
 
 **Extension** (Done) Blizzards must have a cycle at $n_row*n_col/gcd(n_row, n_col)$.
+
+## Day 25: Full of Hot Air (5us)
+
