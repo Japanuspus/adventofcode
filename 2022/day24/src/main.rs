@@ -92,14 +92,15 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
     // nr, nc: Number of internal positions
     let mut met = MetOffice::new(blizzards, valley.clone());
 
-    // dist to exit, time, pos
-    let mut front: BTreeSet<(u8, u16, Pos)> = BTreeSet::new();
+    // best finish time, time, pos
+    let mut front: BTreeSet<(u16, u16, Pos)> = BTreeSet::new();
     front.insert((1, 0, [0, -1])); // wrong distance -- ok here
     let mut best: u16 = u16::MAX;
-    while let Some((d, t, pos)) = front.pop_first() {
+    let p_out = [valley[0]-1, valley[1]-1]; // last position is at valley[0]-1, valley[1]-1 (above exit)
+    while let Some((opt_finish_t, t, pos)) = front.pop_first() {
         //println!("@t={}, d: {}, visiting {:?}. Front len: {}", t, d, pos, front.len());
-        if d==0 {best = best.min(t); continue};
-        if t+d as u16 > best {continue};
+        if pos==p_out {best = best.min(t); continue};
+        if opt_finish_t >= best {continue};
         let snapshot = met.snapshot_at(t as usize);
         for p2 in Direction::VALUES.iter()
             .map(|d| vec2_add(pos, directions(*d)))
@@ -107,8 +108,8 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
             //.inspect(|p| println!("> {:?} in snap: {}", p, snapshot.contains(p)))
             .filter(|p| !snapshot.contains(p)) {
             // last position is at valley[0]-1, valley[1]-1 (above exit)
-            let d2 = (valley[0]-1-p2[0]) as u8 + (valley[1]-1-p2[1]) as u8;
-            front.insert((d2, t+1, p2));
+            let opt_finish_t2 = t+(p_out[0]-p2[0]) as u16 + (p_out[1]-p2[1]) as u16;
+            front.insert((opt_finish_t2, t+1, p2));
         }
     }
     let part1 = best+1;
