@@ -255,7 +255,8 @@ Coded my first solution to use input value directly as key, without noticing tha
 
 For part 2, I missed the fact that the dependency-graph was a tree, and thought long and hard about algebraic reductions before just doing a simple recursive-style solve...
 
-## Day 24: Blizzard Basin (123ms)
+## Day 24: Blizzard Basin (90ms)
 
 Thought I was goin to need interior mutability for caching blizzard positions, but in the end, passing around `&mut`-references was fine.
 
+**Extension** (Done) Blizzards must have a cycle at $n_row*n_col/gcd(n_row, n_col)$.

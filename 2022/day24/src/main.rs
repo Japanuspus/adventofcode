@@ -1,7 +1,8 @@
 #![allow(unused_imports, dead_code)]
 use anyhow::{Context, Result};
 use vecmath::vec2_add;
-use std::{fs, time::Instant, collections::{HashSet, BTreeSet}, ptr::swap_nonoverlapping};
+use std::{fs, time::Instant, collections::{HashSet, BTreeSet}, ptr::swap_nonoverlapping, ops::Rem};
+use gcd::Gcd;
 
 #[derive(PartialEq, Debug, Clone, Copy)]
 enum Direction {N, E, S, W, Pause}
@@ -38,12 +39,14 @@ fn blizzard_move(blizzards: &mut Vec<Blizzard>, v: &Valley) {
 
 struct MetOffice {
     blizzards: Vec<Blizzard>,
-    valley: Valley,
     snapshots: Vec<HashSet::<Pos>>,
+    valley: Valley,
+    period: usize,
 }
 
 impl MetOffice {
     fn snapshot_at(&mut self, t: usize) -> &HashSet::<Pos> {
+        let t = t.rem_euclid(self.period);
         while t>=self.snapshots.len() {
             blizzard_move(&mut self.blizzards, &self.valley);
             self.snapshots.push(self.blizzards.iter().map(|b| b.pos).collect());
@@ -52,7 +55,8 @@ impl MetOffice {
     }
 
     fn new(blizzards: Vec<Blizzard>, valley: Valley) -> Self {
-        MetOffice{blizzards, valley, snapshots: Vec::new()}
+        let period = valley[0] as usize * valley[1] as usize / (valley[0] as u8).gcd(valley[1] as u8) as usize;
+        MetOffice{blizzards, valley, period, snapshots: Vec::new()}
     }
 }
 
@@ -125,7 +129,7 @@ fn test_solution() -> Result<()> {
 
 fn main() -> Result<()> {
     let input = &fs::read_to_string("input.txt")?;
-    //for _ in 0..20 {solution(&input)?;} //warmup
+    for _ in 0..8 {solution(&input)?;} //warmup
     let start = Instant::now();
     let res = solution(&input)?;
     println!(
