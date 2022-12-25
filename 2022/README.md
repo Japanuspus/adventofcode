@@ -253,4 +253,9 @@ Coded my first solution to use input value directly as key, without noticing tha
 
 ## Day 21: Monkey Math (3ms)
 
-Missed the fact that the graph was a tree, and thought long and hard about algebraic reductions before just doing a simple recursive-style solve...
+For part 2, I missed the fact that the dependency-graph was a tree, and thought long and hard about algebraic reductions before just doing a simple recursive-style solve...
+
+## Day 24: Blizzard Basin (123ms)
+
+Thought I was goin to need interior mutability for caching blizzard positions, but in the end, passing around `&mut`-references was fine.
+

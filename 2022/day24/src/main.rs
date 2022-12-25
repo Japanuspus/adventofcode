@@ -3,21 +3,8 @@ use anyhow::{Context, Result};
 use vecmath::vec2_add;
 use std::{fs, time::Instant, collections::{HashSet, BTreeSet}, ptr::swap_nonoverlapping};
 
-use parse_display::{Display, FromStr};
-
-#[derive(Display, FromStr, PartialEq, Debug, Clone, Copy)]
-enum Direction {
-    #[display("^")]
-    N,
-    #[display(">")]
-    E,
-    #[display("v")]
-    S,
-    #[display("<")]
-    W,
-    #[display(".")]
-    Pause,
-}
+#[derive(PartialEq, Debug, Clone, Copy)]
+enum Direction {N, E, S, W, Pause}
 
 impl Direction {
     const VALUES:[Self;5] = [Self::N, Self::E, Self::S, Self::W, Self::Pause];
@@ -69,6 +56,33 @@ impl MetOffice {
     }
 }
 
+fn min_time(p_in: Pos, p_out: Pos, t0: u16, met: &mut MetOffice) -> Option<u16> {
+    // best finish time, time, pos
+    let mut front: BTreeSet<(u16, u16, Pos)> = BTreeSet::new();
+    let valley = met.valley.clone();
+    front.insert((t0+1, t0, p_in)); // wrong distance -- ok here
+    let mut best_or_none: Option<u16> = None;
+    while let Some((opt_finish_t, t, pos)) = front.pop_first() {
+        //println!("@t={}, d: {}, visiting {:?}. Front len: {}", t, d, pos, front.len());
+        if pos==p_out {
+            best_or_none = best_or_none.and_then(|best| Some(best.min(t))).or(Some(t)); 
+            continue
+        };
+        //if best_or_none.and_then(|best| Some(opt_finish_t >= best)).unwrap_or(false) {continue};
+        if let Some(best) = best_or_none {if opt_finish_t >= best {continue}};
+        let snapshot = met.snapshot_at(t as usize);
+        for p2 in Direction::VALUES.iter()
+            .map(|d| vec2_add(pos, directions(*d)))
+            .filter(|p| *p==p_in || *p==p_out || p.iter().zip(valley.iter()).all(|(c, l)| *c>=0 && c<l))
+            //.inspect(|p| println!("> {:?} in snap: {}", p, snapshot.contains(p)))
+            .filter(|p| !snapshot.contains(p)) {
+            let opt_finish_t2 = t+p_out.iter().zip(p2.iter()).map(|(a,b)| a.abs_diff(*b) as u16).sum::<u16>();
+            front.insert((opt_finish_t2, t+1, p2));
+        }
+    }
+    best_or_none
+}
+
 
 fn solution(input_s: &str) -> Result<[String; 2]> {
     let mut input = input_s.trim_end().split("\n").enumerate();
@@ -92,29 +106,10 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
     // nr, nc: Number of internal positions
     let mut met = MetOffice::new(blizzards, valley.clone());
 
-    // best finish time, time, pos
-    let mut front: BTreeSet<(u16, u16, Pos)> = BTreeSet::new();
-    front.insert((1, 0, [0, -1])); // wrong distance -- ok here
-    let mut best: u16 = u16::MAX;
-    let p_out = [valley[0]-1, valley[1]-1]; // last position is at valley[0]-1, valley[1]-1 (above exit)
-    while let Some((opt_finish_t, t, pos)) = front.pop_first() {
-        //println!("@t={}, d: {}, visiting {:?}. Front len: {}", t, d, pos, front.len());
-        if pos==p_out {best = best.min(t); continue};
-        if opt_finish_t >= best {continue};
-        let snapshot = met.snapshot_at(t as usize);
-        for p2 in Direction::VALUES.iter()
-            .map(|d| vec2_add(pos, directions(*d)))
-            .filter(|p| *p==[0,-1] || p.iter().zip(valley.iter()).all(|(c, l)| *c>=0 && c<l))
-            //.inspect(|p| println!("> {:?} in snap: {}", p, snapshot.contains(p)))
-            .filter(|p| !snapshot.contains(p)) {
-            // last position is at valley[0]-1, valley[1]-1 (above exit)
-            let opt_finish_t2 = t+(p_out[0]-p2[0]) as u16 + (p_out[1]-p2[1]) as u16;
-            front.insert((opt_finish_t2, t+1, p2));
-        }
-    }
-    let part1 = best+1;
-    let part2 = 0;
-
+    let p1 = [0, -1];
+    let p2 = [valley[0]-1, valley[1]];
+    let part1 = min_time(p1, p2, 0, &mut met).unwrap();
+    let part2 = min_time(p2, p1, part1, &mut met).and_then(|t2| min_time(p1, p2, t2, &mut met)).unwrap();
     Ok([part1.to_string(), part2.to_string()])
 }
 
@@ -124,7 +119,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert!(res[0] == "18");
-    assert!(res[1] == "0");
+    assert!(res[1] == "54");
     Ok(())
 }
 
@@ -139,36 +134,3 @@ fn main() -> Result<()> {
     );
     Ok(())
 }
-
-
-// // Make it simple to compare timing for multiple solutions
-// type Solution = dyn Fn(&str) -> Result<[String; 2]>;
-// const SOLUTIONS: [(&str, &Solution); 1] = [("Original", &solution)];
-
-// #[test]
-// fn test_solution() -> Result<()> {
-//     let input = &fs::read_to_string("test00.txt")?;
-//     for (name, solution) in SOLUTIONS {
-//         let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
-//         println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
-//         assert!(res[0] == "0");
-//         assert!(res[1] == "0");
-//     }
-//     Ok(())
-// }
-
-// fn main() -> Result<()> {
-//     let input = &fs::read_to_string("input.txt")?;
-//     for (_, solution) in SOLUTIONS.iter().cycle().take(10) {
-//         solution(&input)?;
-//     } //warmup
-//     for (name, solution) in SOLUTIONS {
-//         let start = Instant::now();
-//         let res = solution(&input)?;
-//         println!(
-//             "---\n{} ({} us)\nPart 1: {}\nPart 2: {}",
-//             name, start.elapsed().as_micros(), res[0], res[1],
-//         );
-//     }
-//     Ok(())
-// }
