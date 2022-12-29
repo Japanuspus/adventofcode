@@ -243,6 +243,10 @@ Used BFS to map exterior while counting external surfaces. Seems pretty optimal.
 
 Only clunkyness was some error mapping in going from `Vec` to array, and my bounds handling for the exterior.
 
+## Day 19: Not Enough Minerals
+
+Found a very clean branch-and-bound implementation by [crazytieguy](https://github.com/Crazytieguy/advent-of-code/blob/master/2022/src/bin/day19/main.rs). One particular aspect to take to heart: do not be afraid of using the call-stack for DFS -- much cleaner solution.
+
 ## Day 20: Grove Positioning System (300ms)
 
 Coded my first solution to use input value directly as key, without noticing that the real input had duplicates. Was accepted by the `collec::<HashMap<...>>`, so took me a debug session to spot he issue.
@@ -254,6 +258,14 @@ Coded my first solution to use input value directly as key, without noticing tha
 ## Day 21: Monkey Math (3ms)
 
 For part 2, I missed the fact that the dependency-graph was a tree, and thought long and hard about algebraic reductions before just doing a simple recursive-style solve...
+
+## Day 22; Monkey Map
+
+The maze folded onto a cube-day.
+Part 1 was ok except for a clunky parser (forgot about `.inspect`).
+For part 2, the easy solution would be to encode the overall geometry manually, but my brain melted and I decided to do a general solver instead. 
+
+Maybe use [`euclid`](https://crates.io/crates/euclid) (from servo) instead of `vecmath` (from piston)? Seems to have nicer ergonomics?
 
 ## Day 24: Blizzard Basin (90ms)
 
