@@ -14,19 +14,20 @@ use nom::{Finish, IResult};
 #[derive(Display, FromStr, PartialEq, Debug, Clone, Copy)]
 #[display(style = "lowercase")]
 enum Resource {
-    Ore,
-    Clay,
-    Obsidian,
     Geode,
+    Obsidian,
+    Clay,
+    Ore,
 }
+
 impl Resource {
-    const VALUES: [Self;4] = [Self::Ore, Self::Clay, Self::Obsidian, Self::Geode];
+    const VALUES: [Self;4] = [Self::Geode, Self::Obsidian, Self::Clay, Self::Ore,];
     const fn index(&self) -> usize {
         match self {
-            Self::Ore => 3,
-            Self::Clay => 2,
-            Self::Obsidian => 1,
             Self::Geode => 0,    
+            Self::Obsidian => 1,
+            Self::Clay => 2,
+            Self::Ore => 3,
         }
     }
     const ALL: u8 = 0b1111;
@@ -40,11 +41,13 @@ impl Resource {
     }
 }
 
+#[derive(Debug)]
 struct RobotPrice {
     product: Resource,
     price: Vec<(u32, Resource)>
 }
 
+#[derive(Debug)]
 struct Blueprint {
     id: u32,
     recipes: Vec<RobotPrice>,
@@ -100,41 +103,12 @@ fn bp_cost_matrix(bp: &Blueprint) -> CostMap {
     m
 } 
 
-// compute a bitvec indicating robot purchases that are not reachable as next purchase
-fn unreachable(robots: ResVec<u8>, resources: ResVec<u8>, time: u8, costs: &CostMap) -> u8 {
-    let final_resources = vec4_add(resources, vec4_scale(robots, time));
-    let final_possible = Resource::VALUES.iter().filter_map(|r| 
-        vec4_checked_sub(final_resources, costs[r.index()]).and_then(|_| Some(r.bitflag()))
-    ).reduce(|a,b| a|b).unwrap_or(0);
-    Resource::ALL & !final_possible
-}
-
-fn value_vector(costs: &CostMap) -> [usize;4] {
-    
-}
-
-
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 struct State {
-    // Remaining time (at beginning of run)
-    time: u8,
-    // "unreachable" indicates that with current ressoureces/robots, we cannot wait 
-    // long enough to be in a position to make this purchase.
-    disallowed: u8, // unreachable or skipped 
+    time: u8, //remaining
     robots: ResVec<u8>,
     resources: ResVec<u8>,
 }
-
-impl State {
-    fn new(costs: &CostMap) -> Self {
-        let mut robots = [0;4];
-        robots[Resource::Ore] = 1;
-        let resources = [0;4];
-        let time = 24;
-        Self{time, robots, resources, disallowed: unreachable(robots, resources, time, costs)}
-    }
-}
-
 
 fn vec4_checked_sub(a: ResVec<u8>, b: ResVec<u8>) -> Option<ResVec<u8>> {
     if a.iter().zip(b.iter()).all(|(av, bv)| av>=bv) {
@@ -144,84 +118,87 @@ fn vec4_checked_sub(a: ResVec<u8>, b: ResVec<u8>) -> Option<ResVec<u8>> {
     }
 }
 
-fn process_blueprint(bp: &Blueprint) -> usize {
-    let costs = bp_cost_matrix(bp);
-    let mut max_geode: u8 = 0;
-    let mut work = Vec::<State>::new();
-    work.push(State::new(&costs));
-    while let Some(w) = work.pop() {
-        if w.time == 0 {
-            let o=w.resources[Resource::Geode];
-            if o>0 {
-                println!("BP# {:02} - Found {:3} geodes, Backlog: {}", bp.id, &o, work.len());
-                if o>max_geode {max_geode=o};
-            }
-            continue;
-        }
-        let purchase_resources: [(Resource, Option<ResVec<u8>>);4] = Resource::VALUES.map(|r| (
-            r, 
-            vec4_checked_sub(w.resources, costs[r]).and_then(|res| Some(vec4_add(res, w.robots)))
-        ));
-        let possible_now = purchase_resources.iter().filter_map(|(r, v)| v.and_then(|_| Some(r.bitflag()))).reduce(|a, b| a|b).unwrap_or(0);
-        let time = w.time-1;
-        // Maybe wait
-        {
-            let disallowed = w.disallowed | possible_now; //If we wait, anything that was possible to buy now should not be bought later
-            if disallowed != Resource::ALL {
-                // There are things we could wait for
-                work.push(State{robots: w.robots, resources: vec4_add(w.resources, w.robots), time, disallowed});
-            }    
-        }
+impl State {
+    fn new(time: u8) -> Self {
+        Self{time, robots: Resource::Ore.unit(), resources: [0;4]}
+    }
 
-        // Possible purchases
-        for (r, o_res) in purchase_resources.into_iter() {
-            if let Some(resources) = o_res {
-                let not_allowed = (r.bitflag()&w.disallowed)>0;
-                if not_allowed {continue}
-                let robots = vec4_add(w.robots, r.unit());
-                let disallowed = unreachable(robots, resources, time, &costs);
-                work.push(State{robots, resources, disallowed, time})                
+    fn wait_for_robot(&self, robot: Resource, costs: &CostMap) -> Option<Self> {
+        (0..self.time).rev().find_map(|time| 
+            vec4_checked_sub(
+                // resources are consumed 1 time unit before robot is completet
+                vec4_add(self.resources, vec4_scale(self.robots, self.time-(time+1))), 
+                costs[robot]
+            ).and_then(|resources|
+                Some(Self{time, resources: vec4_add(resources, self.robots), robots: vec4_add(self.robots, robot.unit())})
+            ))
+    }
+
+    /// The trick: next state is not next time step, but next time a purchase is made
+    fn branch<'a>(&'a self, costs: &'a CostMap) -> impl Iterator<Item=Self> + 'a {
+        Resource::VALUES.iter().filter_map(|robot| self.wait_for_robot(*robot, costs)) 
+    }
+
+    fn secured_geodes(&self) -> u8 {
+        self.resources[Resource::Geode] + self.time*self.robots[Resource::Geode]
+    }
+
+    // an upper bound on number of geodes we can reach from here
+    fn bound(&self, costs: &CostMap) -> u8 {
+        // propagate number of geodes to t=0, assuming infinite ore and clay resources
+        // g, o, gr, or
+        let gr_price = costs[Resource::Geode][Resource::Obsidian];
+        (0..self.time).fold((
+            self.resources[Resource::Geode], 
+            self.resources[Resource::Obsidian],
+            self.robots[Resource::Geode],
+            self.robots[Resource::Obsidian],
+        ), |(g, o, gr, or), _| 
+            if let Some(o2) = o.checked_sub(gr_price) {
+                (g+gr, o2+or, gr+1, or)
+            } else {
+                (g+gr, o+or, gr, or+1)
             }
-        }
+        ).0
+    }
+}
+
+fn branch_and_bound(state: State, costs: &CostMap, best: &mut u8) {
+    if false {
+        let secured_geodes = state.secured_geodes();
+        let bound = state.bound(costs);
+        assert!(bound >= secured_geodes);
+        println!("G: {:2} (bd: {:2}) <-- {:?}", secured_geodes, bound, &state);
     };
-    max_geode as usize
+    *best = state.secured_geodes().max(*best);
+    for s in state.branch(costs) {
+        if s.bound(costs) > *best {
+            branch_and_bound(s, costs, best);
+        }
+    }
 }
 
-#[test]
-fn test_blueprint() -> Result<()> {
-    let input = &fs::read_to_string("test00.txt")?;
-    let bp = parse_blueprint(input.split("\n").next().unwrap()).unwrap().1;
-    let res = process_blueprint(&bp);
-    assert!(res == 12);
-    Ok(())
+fn process_blueprint(bp: &Blueprint, time: u8) -> u8 {
+    let costs = bp_cost_matrix(bp);
+    let mut best = 0;
+    branch_and_bound(State::new(time), &costs, &mut best);
+    best
 }
-
 
 fn solution(input_s: &str) -> Result<[String; 2]> {
     let input: Vec<Blueprint> = input_s.trim_end().split("\n")
         .map(|s| parse_blueprint(s).unwrap().1)
         .collect(); 
 
-    let part1 = input.iter().map(|bp| process_blueprint(bp)*bp.id as usize).sum::<usize>();
-    let part2 = 0;
+    let part1 = input.iter().map(|bp| process_blueprint(bp, 24) as usize*bp.id as usize).sum::<usize>();
+    let part2 = input.iter().map(|bp| process_blueprint(bp, 32) as usize).take(3).product::<usize>();
 
     Ok([part1.to_string(), part2.to_string()])
 }
 
-#[test]
-fn test_solution() -> Result<()> {
-    let input = &fs::read_to_string("test00.txt")?;
-    let res = solution(&input)?;
-    println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
-    assert!(res[0] == "33");
-    assert!(res[1] == "0");
-    Ok(())
-}
-
 fn main() -> Result<()> {
-    //let input = &fs::read_to_string("input.txt")?;
-    let input = &fs::read_to_string("test00.txt")?;
-    //for _ in 0..20 {solution(&input)?;} //warmup
+    let input = &fs::read_to_string("input.txt")?;
+    for _ in 0..20 {solution(&input)?;} //warmup
     let start = Instant::now();
     let res = solution(&input)?;
     println!(
@@ -231,35 +208,109 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+#[test]
+fn test_solution() -> Result<()> {
+    let input = &fs::read_to_string("test00.txt")?;
+    let res = solution(&input)?;
+    println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
+    assert_eq!(res[0], "33");
+    assert_eq!(res[1], "3472");
+    Ok(())
+}
 
-// // Make it simple to compare timing for multiple solutions
-// type Solution = dyn Fn(&str) -> Result<[String; 2]>;
-// const SOLUTIONS: [(&str, &Solution); 1] = [("Original", &solution)];
+#[test]
+fn test_blueprint() -> Result<()> {
+    let bps: Vec<_> = fs::read_to_string("test00.txt")?.trim_end().split("\n").map(|ln| parse_blueprint(ln).unwrap().1).collect();
+    for (bp, exp) in bps.iter().zip([9, 12].iter()) {
+        println!("\n\n ***** Blueprint: {:?}", bp);
+        let res = process_blueprint(bp, 24);
+        assert_eq!(res, *exp);
+    }
+    Ok(())
+}
+#[test]
+fn test_resource_index_consistency() {
+    assert!(Resource::VALUES.iter().map(|r| r.index()).enumerate().all(|(i, ri)| i == ri));
+}
 
-// #[test]
-// fn test_solution() -> Result<()> {
-//     let input = &fs::read_to_string("test00.txt")?;
-//     for (name, solution) in SOLUTIONS {
-//         let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
-//         println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
-//         assert!(res[0] == "0");
-//         assert!(res[1] == "0");
-//     }
-//     Ok(())
-// }
+fn fixture_bp2() -> CostMap {
+    let s = "Blueprint 2: Each ore robot costs 2 ore. Each clay robot costs 3 ore. Each obsidian robot costs 3 ore and 8 clay. Each geode robot costs 3 ore and 12 obsidian.";
+    let bp = parse_blueprint(s).unwrap().1;
+    bp_cost_matrix(&bp)
+}
 
-// fn main() -> Result<()> {
-//     let input = &fs::read_to_string("input.txt")?;
-//     for (_, solution) in SOLUTIONS.iter().cycle().take(10) {
-//         solution(&input)?;
-//     } //warmup
-//     for (name, solution) in SOLUTIONS {
-//         let start = Instant::now();
-//         let res = solution(&input)?;
-//         println!(
-//             "---\n{} ({} us)\nPart 1: {}\nPart 2: {}",
-//             name, start.elapsed().as_micros(), res[0], res[1],
-//         );
-//     }
-//     Ok(())
-// }
+#[test]
+fn test_costs() {
+    let costs = fixture_bp2();
+    assert_eq!(costs[Resource::Obsidian][Resource::Clay], 8);
+}
+
+#[test]
+fn test_wait_for_robot() {
+    let costs = fixture_bp2();
+    let s = State::new(24);
+    assert_eq!(None, s.wait_for_robot(Resource::Geode, &costs));
+    assert_eq!(None, s.wait_for_robot(Resource::Obsidian, &costs));
+
+    
+    let mut s_c = s.clone();
+    s_c.time = 20;
+    s_c.robots[Resource::Clay] = 1;
+    s_c.resources[Resource::Ore] = 1;
+    assert_eq!(Some(s_c), s.wait_for_robot(Resource::Clay, &costs));
+    
+
+    let mut s_o = s.clone();
+    s_o.time = 21;
+    s_o.robots[Resource::Ore] = 2;
+    s_o.resources[Resource::Ore] = 1;
+    assert_eq!(Some(s_o.clone()), s.wait_for_robot(Resource::Ore, &costs));
+
+    let mut s_oc = s_o.clone();
+    s_oc.time = 19;
+    s_oc.robots[Resource::Clay] = 1;
+    s_oc.resources[Resource::Ore] = 2;
+    assert_eq!(Some(s_oc.clone()), s_o.wait_for_robot(Resource::Clay, &costs));
+
+    let mut s_oco = s_oc.clone();
+    s_oco.time = 18;
+    s_oco.robots[Resource::Ore] = 3;
+    s_oco.resources[Resource::Ore] = 2;
+    s_oco.resources[Resource::Clay] = 1;
+    assert_eq!(Some(s_oco.clone()), s_oc.wait_for_robot(Resource::Ore, &costs));
+}
+
+#[test]
+fn test_bound() {
+    let costs = fixture_bp2();
+    let mut state = {
+        let mut resources = [0;4];
+        resources[Resource::Obsidian] = 11;
+        let mut robots = [0;4];
+        robots[Resource::Obsidian] = 1;
+        State{time: 1, resources, robots}
+    };
+    // At end of minute
+    // 01: Res: 12 00 Rob: 02 00
+    // 02: Res: 02 00 Rob: 02 01
+    // 03: Res: 04 01 Rob: 03 01
+    // 04: Res: 07 02 Rob: 04 01
+    // 05: Res: 11 03 Rob: 05 01
+    // 06: Res: 16 04 Rob: 06 01
+    // 07: Res: 10 05 Rob: 06 02
+
+    assert_eq!(state.bound(&costs), 0);
+
+    state.time = 2;
+    assert_eq!(state.bound(&costs), 0);
+
+    state.time = 3;
+    assert_eq!(state.bound(&costs), 1);
+
+    state.time = 6;
+    assert_eq!(state.bound(&costs), 4);
+
+    state.time = 7;
+    assert_eq!(state.bound(&costs), 5);
+}
+
