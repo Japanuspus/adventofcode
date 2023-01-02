@@ -224,9 +224,11 @@ Not pretty. Ended up spending a long time getting a good idea for part 2 (rotate
 **Extension**: Solve part 2 in rotated coordinate system.
 - Find possible isolated values for u and v separately and test candidates (approx. 100)
 
-## Day 16: Proboscidea Volcanium
+## Day 16: Proboscidea Volcanium (1ms)
 
-Use bitfields for set.
+Was scared about performance on this one, but it turned out that a greedy branch and bound DFS solved it very fast.
+
+**Extension**: Use a bitvec for tracking visited valves instead of the current `HashSet<[u8;2]>`. 
 
 ## Day 17 Pyroclastic Flow
 
@@ -235,7 +237,7 @@ Made a solution with bitfields - but they really should be unions of `[u8;4]` an
 
 **Open**: Deep thoughts about the cycles.
 
-**Extension**: Use bit unions?
+**Extension**: Use bit unions? Is this a thing in Rust?
 
 ## Day 18: Boiling Boulders (2ms)
 
@@ -265,7 +267,7 @@ The maze folded onto a cube-day.
 Part 1 was ok except for a clunky parser (forgot about `.inspect`).
 For part 2, the easy solution would be to encode the overall geometry manually, but my brain melted and I decided to do a general solver instead. 
 
-Maybe use [`euclid`](https://crates.io/crates/euclid) (from servo) instead of `vecmath` (from piston)? Seems to have nicer ergonomics?
+Maybe use [`euclid`](https://crates.io/crates/euclid) (from servo) instead of `vecmath` (from piston)? Seems to have nicer ergonomics at the price of not working directly on slices.
 
 ## Day 24: Blizzard Basin (90ms)
 
