@@ -42,7 +42,7 @@ fn compare_value(v1: &Value, v2: &Value) -> Ordering {
             EitherOrBoth::Both(a, b) => compare_value(a, b),
             EitherOrBoth::Left(_) => Ordering::Greater,
             EitherOrBoth::Right(_) => Ordering::Less,
-       }
+        }
     ).skip_while(|c| c.is_eq()).next().unwrap_or(Ordering::Equal)
 }
 
