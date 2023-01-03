@@ -226,9 +226,15 @@ Not pretty. Ended up spending a long time getting a good idea for part 2 (rotate
 
 ## Day 16: Proboscidea Volcanium (1ms)
 
-Was scared about performance on this one, but it turned out that a greedy branch and bound DFS solved it very fast.
+Was scared about performance on this one, but it turned out that a greedy branch and bound DFS solved it very fast. 
 
-**Extension**: Use a bitvec for tracking visited valves instead of the current `HashSet<[u8;2]>`. 
+For part 2 I did a DFS on the combined state of the two agents which was a good chance to play with const generics.
+
+Performance was so-so with a runtime of 1600ms compared to 1ms for part 1. The obvious alternative, an outer optimization on subsets passed to part 1, would need tuning to perform better: the input only had 14 nonzero entries, coresponding to 2^14/2 ~ 100_000 subsets to check.
+
+**Extension**: (Done - did not perform much better for part 1: the rust allocator is fast) Use a bitvec for tracking visited valves instead of the current `HashSet<[u8;2]>`. 
+
+**Extension**: Get rid of some of the index and enumeration stuff: Use `&Resource` as `valve` index in `Agent` rahter than the `u16` index (and extend `Resource` to include `1<<i` as `.mask`).
 
 ## Day 17 Pyroclastic Flow
 
