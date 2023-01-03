@@ -36,8 +36,9 @@ fn parse_line(s: &str) -> IResult<&str, Input> {
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
 struct Resource {
-    capacity: u16,  // primary sort value 
+    capacity: u16,  // primary sort value
     valve: Valve,
+    mask: u16,
     distances: Vec<u16>,
 }
 type Resources = Vec<Resource>;
@@ -56,8 +57,8 @@ fn parse_resources(input_s: &str) -> Result<Resources> {
         .map(|i| (i.capacity, i.valve))
         .sorted().collect();
 
-    Ok(r_valves.iter()
-        .map(|(capacity, a)| {
+    Ok(r_valves.iter().enumerate()
+        .map(|(ia, (capacity, a))| {
             // BFS from a
             let mut frontier: VecDeque<(Valve, u16)> = VecDeque::new();
             let mut visited: HashMap<Valve, u16> = HashMap::new();
@@ -71,21 +72,21 @@ fn parse_resources(input_s: &str) -> Result<Resources> {
                     });
                 }
             }
-            Resource{valve: *a, capacity: *capacity, distances: r_valves.iter().map(|(_, b)| visited[b]).collect()}
+            Resource{valve: *a, mask: 1<<ia, capacity: *capacity, distances: r_valves.iter().map(|(_, b)| visited[b]).collect()}
         }).collect::<Vec<_>>())
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-struct Agent {
-    valve: u16, // index of Valve, 
+struct Agent<'a>  {
+    valve: &'a Resource, // index of Valve, 
     time: u16, // Time remaining once this valve is activated
 }
 
 #[derive(Debug, Clone)]
-struct BBState2<const N: usize> {
+struct BBState2<'a, const N: usize> {
     vented: usize, // includes all future venting from valves targeted by agents
     active: u16,   // includes valves targeted by agents
-    agents: [Agent;N],
+    agents: [Agent<'a>;N],
 }
 
 struct ProductIndex<const N: usize> {
@@ -116,15 +117,15 @@ impl <const N: usize> Iterator for ProductIndex<N> {
     }
 }
 
-impl <const N: usize> BBState2<N> {
-    fn new(time: u16) -> Self {
-        Self{active: 1, vented: 0, agents: [Agent{valve: 0, time}; N]}
+impl <'a, const N: usize> BBState2<'a, N> {
+    fn new(time: u16, resources: &'a Resources) -> Self {
+        Self{active: 1, vented: 0, agents: [Agent{valve: &resources[0], time}; N]}
     }
 
     /// Assume each agent can open one valve for each two minutes once it has completed current tasks
     fn bound(&self, resources: &Resources) -> usize {
-        let mut capacities = resources.iter().enumerate().rev()
-            .filter_map(|(i, r)| if 1<<i & self.active == 0 {Some(r.capacity)} else {None});
+        let mut capacities = resources.iter().rev()
+            .filter_map(|r| if r.mask & self.active == 0 {Some(r.capacity)} else {None});
         let t_max = self.agents.iter().map(|a| a.time).max().unwrap();
         // self.vented + (0..t_max).rev().flat_map(|t_prod| 
         //     self.agents.iter()
@@ -150,18 +151,18 @@ impl <const N: usize> BBState2<N> {
         s
     }
 
-    fn branch(&self, resources: &Resources) -> impl Iterator<Item=Self> + '_{
+    fn branch(&self, resources: &'a Resources) -> impl Iterator<Item=BBState2<'a, N>> + '_{
         //actions for each agent,
         let t_max = self.agents.iter().map(|a| a.time).max().unwrap();
         let actions_by_agent: [Vec<(usize, Agent)>;N] = self.agents.map(|a|
             if a.time == t_max {
-                resources.iter().enumerate().rev()
-                .filter(|(ir, _)| 1<<ir & self.active == 0)
-                .filter_map(|(ir, r)| 
-                    a.time.checked_sub(1+r.distances[a.valve as usize])
+                resources.iter().zip(a.valve.distances.iter()).rev()
+                .filter(|(r, _)| r.mask & self.active == 0)
+                .filter_map(|(r, dist)| 
+                    a.time.checked_sub(1+dist)
                     .and_then(|time| Some((
                         time as usize * r.capacity as usize, 
-                        Agent{time, valve: ir as u16}))))
+                        Agent{time, valve: r}))))
                 .collect()
             } else {
                 vec![(0, a)]
@@ -171,17 +172,17 @@ impl <const N: usize> BBState2<N> {
         ProductIndex::new(action_bounds)
         .map(move |iv| {
             let dv = actions_by_agent.iter().zip(iv.iter()).map(|(av, i)| av[*i].0).sum::<usize>();
-            let mut actions = [Agent{valve: 0, time: 0};N];
+            let mut actions = [Agent{valve: &resources[0], time: 0};N]; // causes lifetime bound on resources input
             for i in 0..N {
                 actions[i] = actions_by_agent[i][iv[i]].1;
             }
             (dv, actions)
         })
         // filter out actions with multiple agents sharing a target
-        .filter(|(_, actions)| (actions.iter().fold(0u16, |acc, agent| acc | (1<<agent.valve)).count_ones() as usize) == N)
+        .filter(|(_, actions)| (actions.iter().fold(0u16, |acc, agent| acc | agent.valve.mask).count_ones() as usize) == N)
         // .sorted().rev() -- the allocation slow things down
         .map(|(dv, agents)| {
-            let active = agents.iter().fold(self.active, |active, a| active | 1<<a.valve);
+            let active = agents.iter().fold(self.active, |active, a| active | a.valve.mask);
             Self{vented: self.vented+dv, active, agents}
         })
     }
@@ -201,10 +202,10 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
     let resources = parse_resources(input_s)?;
 
     let mut part1: usize = 0;
-    BBState2::<1>::new(30).branch_and_bound(&resources, &mut part1);
+    BBState2::<1>::new(30, &resources).branch_and_bound(&resources, &mut part1);
 
     let mut part2: usize = 0;
-    BBState2::<2>::new(26).branch_and_bound(&resources, &mut part2);
+    BBState2::<2>::new(26, &resources).branch_and_bound(&resources, &mut part2);
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -213,7 +214,7 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
 fn test_bstate() -> Result<()> {
     let input = &fs::read_to_string("test00.txt")?;
     let resources = parse_resources(input)?;
-    let branches: Vec<_> = BBState2::<1>::new(30).branch(&resources).collect();
+    let branches: Vec<_> = BBState2::<1>::new(30, &resources).branch(&resources).collect();
     assert_eq!(branches.len(), resources.len()-1);
     Ok(())
 }
