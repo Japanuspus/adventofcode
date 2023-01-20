@@ -35,8 +35,8 @@ fn test_solution() -> Result<()> {
     let input = &fs::read_to_string("test00.txt")?;
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
-    assert!(res[0] == "0");
-    assert!(res[1] == "0");
+    assert_eq!(res[0], "0");
+    assert_eq!(res[1], "0");
     Ok(())
 }
 
@@ -63,8 +63,8 @@ fn main() -> Result<()> {
 //     for (name, solution) in SOLUTIONS {
 //         let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
 //         println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
-//         assert!(res[0] == "0");
-//         assert!(res[1] == "0");
+//         assert_eq!(res[0], "0");
+//         assert_eq!(res[1], "0");
 //     }
 //     Ok(())
 // }
