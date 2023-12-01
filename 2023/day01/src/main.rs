@@ -1,29 +1,14 @@
 #![allow(unused_imports, dead_code)]
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, anyhow};
 use itertools::Itertools;
 use std::{fs, time::Instant};
 
-// use parse_display::{Display, FromStr};
-
-// #[derive(Display, FromStr, PartialEq, Debug)]
-// enum Direction {
-//     #[display("forward")]
-//     Forward,
-// }
-
-// #[derive(Debug, Display, FromStr)]
-// #[display("{direction} {distance}")]
-// struct Step {
-//     direction: Direction,
-//     distance: i32,
-// }
-
-fn parse_line(s: &str) -> u32 {
+fn parse_line(s: &str) -> Result<u32> {
     let mut cs = s.chars().filter_map(|c| c.to_digit(10));
-    let c1 = cs.next().unwrap();
+    let c1 = cs.next().ok_or_else(|| anyhow!("Found no digits in \"{}\"", s))?;
     let c2 = cs.last().unwrap_or(c1);
-    10*c1+c2
+    Ok(10*c1+c2)
 }
 
 const DIGIT_STRINGS: [&str; 20] = [
@@ -48,31 +33,25 @@ fn test_as_elf_digit() {
     assert_eq!(as_elf_digit(b"2b"), Some(2));
 }
 
-fn parse_line2(s: &str) -> u32 {
+fn parse_line2(s: &str) -> Result<u32> {
     let s=s.as_bytes();
     let mut cs = (0..s.len()).filter_map(|idx| as_elf_digit(&s[idx..]));
-    let c1 = cs.next().ok_or_else(|| format!("Error parsing {:?}", s)).unwrap();
+    let c1 = cs.next().ok_or_else(|| anyhow!("Found no digits in \"{:?}\"", s))?;
     let c2 = cs.last().unwrap_or(c1);
-    10*c1+c2
+    Ok(10*c1+c2)
 }
 
-#[test]
-fn test_parse_line2() {
-    assert_eq!(parse_line2("6798seven"), 67);
-}
 
 fn solution(input_s: &str) -> Result<[String; 2]> {
-    let part1:usize = input_s.trim_end()
+    let res = [parse_line, parse_line2]
+    .map(|ln_parse| {
+        input_s.trim_end()
         .split("\n")
-        .map(|s| parse_line(s) as usize)
-        .sum();
-    
-    let part2:usize = input_s.trim_end()
-        .split("\n")
-        .map(|s| parse_line2(s) as usize)
-        .sum();
-    
-    Ok([part1.to_string(), part2.to_string()])
+        .map(|s| ln_parse(s))
+        .try_fold(0, |acc, res| res.map(|val| acc+val))
+        .map_or_else(|err| format!("### {}", err), |val| val.to_string())
+    });
+    Ok(res)
 }
 
 #[test]
@@ -81,6 +60,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert_eq!(res[0], "142");
+
 
     let input = &fs::read_to_string("test01.txt")?;
     let res = solution(&input)?;
