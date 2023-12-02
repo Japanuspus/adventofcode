@@ -12,3 +12,12 @@ Spent way too long looking at my tests failing before realizing that test for pa
 
 After getting everything working, I spend some time reacquainting myself with rust error handling and stumbled over the [`anyhow!`](https://docs.rs/anyhow/latest/anyhow/#details) macro in the anyhow package, which makes it easy to create one-off error objects.
 
+Extensions: I really should do a trie-search implementation...
+
+## Day 2: Cube Conundrum 
+
+Should have used nom or parse-display for parsing, but managed to discover that mixing up "green" and "blue" index gave same answer for the test problem.
+
+Good learning from my clunky parser: the `str`-primitive has a `.split_once`-method.
+
+Extension: use nom for parsing.
