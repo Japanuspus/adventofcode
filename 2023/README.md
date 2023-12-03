@@ -21,3 +21,7 @@ Should have used nom or parse-display for parsing, but managed to discover that 
 Good learning from my clunky parser: the `str`-primitive has a `.split_once`-method.
 
 Extension: use nom for parsing.
+
+## Day 3: Gear Ratios
+
+Tried different variations between functional and procedural style and decided that explicit for loops over complex iterators and using exterior mutable state was the most readable.
