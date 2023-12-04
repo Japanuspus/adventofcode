@@ -25,3 +25,39 @@ Extension: use nom for parsing.
 ## Day 3: Gear Ratios
 
 Tried different variations between functional and procedural style and decided that explicit for loops over complex iterators and using exterior mutable state was the most readable.
+
+## Day 4: Scratchcards
+
+Decided that this was the day to try out `nom` again, and it ended up being somewhat painful.
+
+I should note that ergonomics of `nom` have improved a lot Since I first used it. Most significantly, suggested best practice is now to avoid macros. 
+Furthermore, the `IResult`-type has been replaced with `Result<(rest, res), Err>`, which is much more ergonomic.
+
+The issue I saw was related to using parser-combinators exclusively: 
+
+1: You cannot reuse a combinator construction.
+2: Error type hinting is quite verbose.
+3: Variable space separators are verbose.
+
+As an example, consider this
+
+```
+  let win_have = nom::sequence::separated_pair(
+        nom::multi::separated_list1(
+            nom::character::complete::space1::<&str, nom::error::Error<_>>,
+            nom::character::complete::u16::<&str, nom::error::Error<_>>,
+        ),
+        nom::sequence::pair(
+            nom::bytes::complete::tag(" |"),
+            nom::character::complete::space1::<&str, nom::error::Error<_>>,
+        ),
+        nom::multi::separated_list1(
+            nom::character::complete::space1::<&str, nom::error::Error<_>>,
+            nom::character::complete::u16::<&str, nom::error::Error<_>>,
+        ),
+    );
+```
+
+Here the two pair-entries would ideally be defined externally, but this results in an "already borrowed"-error.
+
+ 
