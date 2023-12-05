@@ -60,4 +60,8 @@ As an example, consider this
 
 Here the two pair-entries would ideally be defined externally, but this results in an "already borrowed"-error.
 
- 
+## Day 5: If You Give A Seed A Fertilizer (173 us)
+
+Thought long and hard to avoid having to deal with interval intersections, but in the end this was the way.
+
+Extension: clean up the four-way logic in the interval code.  
