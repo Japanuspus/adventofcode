@@ -1,6 +1,6 @@
 #![allow(unused_imports, dead_code)]
 
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use std::{fs, time::Instant};
 
 // use parse_display::{Display, FromStr};
@@ -19,7 +19,8 @@ use std::{fs, time::Instant};
 // }
 
 fn solution(input_s: &str) -> Result<[String; 2]> {
-    let input: Vec<i32> = input_s.trim_end()
+    let input: Vec<i32> = input_s
+        .trim_end()
         .split("\n")
         .map(|s| s.parse().with_context(|| format!("Parsing {}", s)))
         .collect::<Result<_, _>>()?;
@@ -42,16 +43,19 @@ fn test_solution() -> Result<()> {
 
 fn main() -> Result<()> {
     let input = &fs::read_to_string("input.txt")?;
-    for _ in 0..20 {solution(&input)?;} //warmup
+    for _ in 0..20 {
+        solution(&input)?;
+    } //warmup
     let start = Instant::now();
     let res = solution(&input)?;
     println!(
         "({} us)\nPart 1: {}\nPart 2: {}",
-        start.elapsed().as_micros(), res[0], res[1],
+        start.elapsed().as_micros(),
+        res[0],
+        res[1],
     );
     Ok(())
 }
-
 
 // // Make it simple to compare timing for multiple solutions
 // type Solution = dyn Fn(&str) -> Result<[String; 2]>;
