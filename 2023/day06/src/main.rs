@@ -3,37 +3,64 @@
 use anyhow::{anyhow, Context, Result};
 use std::{fs, time::Instant};
 
-// use parse_display::{Display, FromStr};
+fn race(time: usize, dist: usize) -> usize {
+    // c*(T-c)=d
+    // c c - c T + d = 0
+    // (c - T/2)**2 -T**2/4 + d = 0
+    // c = T/2 +/- sqrt(T**2/4-d)
 
-// #[derive(Display, FromStr, PartialEq, Debug)]
-// enum Direction {
-//     #[display("forward")]
-//     Forward,
-// }
-
-// #[derive(Debug, Display, FromStr)]
-// #[display("{direction} {distance}")]
-// struct Step {
-//     direction: Direction,
-//     distance: i32,
-// }
+    let sd = (time as f64 * time as f64 / 4.0 - dist as f64).sqrt();
+    let cmin: usize = ((time as f64 / 2.0) - sd).ceil() as usize;
+    let cmax: usize = ((time as f64 / 2.0) + sd).floor() as usize;
+    cmax - cmin + 1
+}
 
 fn solution(input_s: &str) -> Result<[String; 2]> {
     let input: Vec<Vec<i32>> = input_s
         .trim_end()
         .split("\n")
-        .map(|s| s.split_ascii_whitespace().skip(1).map(|n| n.parse()).collect::<Result<_,_>>())
+        .map(|s| {
+            s.split_ascii_whitespace()
+                .skip(1)
+                .map(|n| n.parse())
+                .collect::<Result<_, _>>()
+        })
         .collect::<Result<_, _>>()?;
     // time, dist
-    let races: Vec<(i32, i32)> = input[0].iter().cloned().zip(input[1].iter().cloned()).collect();
+    let races: Vec<(i32, i32)> = input[0]
+        .iter()
+        .cloned()
+        .zip(input[1].iter().cloned())
+        .collect();
 
     let mut part1: usize = 1;
     for (time, dist) in races {
-        let n=(0..time).filter(|charge| charge*(time-charge)>dist).count();
-        part1*=n;
+        let n = (0..time)
+            .filter(|charge| charge * (time - charge) > dist)
+            .count();
+        // let n2 = race(time as usize, dist as usize);
+        // println!("{}, {}", n, n2);
+        part1 *= n;
     }
 
-    let part2 = 0;
+    let input2: Vec<usize> = input_s
+        .trim_end()
+        .split("\n")
+        .map(|s| {
+            if let Some((_, ns)) = s.split_once(':') {
+                ns.chars()
+                    .filter(|c| !c.is_ascii_whitespace())
+                    .collect::<String>()
+                    .parse::<usize>()
+                    .context("parsing number")
+            } else {
+                Err(anyhow!("Could not split"))
+            }
+        })
+        .collect::<Result<_, _>>()?;
+    // println!("{:?}", input2);
+
+    let part2 = race(input2[0], input2[1]);
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -44,7 +71,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert_eq!(res[0], "288");
-    assert_eq!(res[1], "0");
+    assert_eq!(res[1], "71503");
     Ok(())
 }
 
@@ -53,6 +80,7 @@ fn main() -> Result<()> {
     for _ in 0..20 {
         solution(&input)?;
     } //warmup
+    println!("Running");
     let start = Instant::now();
     let res = solution(&input)?;
     println!(
@@ -63,35 +91,3 @@ fn main() -> Result<()> {
     );
     Ok(())
 }
-
-// // Make it simple to compare timing for multiple solutions
-// type Solution = dyn Fn(&str) -> Result<[String; 2]>;
-// const SOLUTIONS: [(&str, &Solution); 1] = [("Original", &solution)];
-
-// #[test]
-// fn test_solution() -> Result<()> {
-//     let input = &fs::read_to_string("test00.txt")?;
-//     for (name, solution) in SOLUTIONS {
-//         let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
-//         println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
-//         assert_eq!(res[0], "0");
-//         assert_eq!(res[1], "0");
-//     }
-//     Ok(())
-// }
-
-// fn main() -> Result<()> {
-//     let input = &fs::read_to_string("input.txt")?;
-//     for (_, solution) in SOLUTIONS.iter().cycle().take(10) {
-//         solution(&input)?;
-//     } //warmup
-//     for (name, solution) in SOLUTIONS {
-//         let start = Instant::now();
-//         let res = solution(&input)?;
-//         println!(
-//             "---\n{} ({} us)\nPart 1: {}\nPart 2: {}",
-//             name, start.elapsed().as_micros(), res[0], res[1],
-//         );
-//     }
-//     Ok(())
-// }

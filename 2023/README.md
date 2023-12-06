@@ -65,3 +65,9 @@ Here the two pair-entries would ideally be defined externally, but this results 
 Thought long and hard to avoid having to deal with interval intersections, but in the end this was the way.
 
 Extension: clean up the four-way logic in the interval code.  
+
+## Day 6: Wait For It (<1 us)
+
+My double-based solution agreed with brute force for all my part 1 problems -- but not for the example part 1 problems, so I might be lucky on this one.
+
+
