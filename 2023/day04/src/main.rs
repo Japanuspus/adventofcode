@@ -1,36 +1,40 @@
 #![allow(unused_imports, dead_code)]
 
 use anyhow::{anyhow, Context, Result};
-use nom;
+use regex::Regex;
 use std::{collections::HashSet, fs, time::Instant};
 
 mod nm {
+    pub use nom::bytes::complete::*;
+    pub use nom::character::complete::*;
+    pub use nom::error::*;
     pub use nom::multi::*;
     pub use nom::sequence::*;
-    pub use nom::character::complete::*;
-    pub use nom::bytes::complete::*;
-    pub use nom::error::*;
+    pub use nom::IResult;
+
+    /// A combinator that takes a parser `inner` and produces a parser that 
+    /// also consumes both leading and trailing whitespace, 
+    /// returning the output of `inner`.
+    pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
+        inner: F,
+    ) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+    where
+        F: Fn(&'a str) -> IResult<&'a str, O, E>,
+    {
+        delimited(multispace0, inner, multispace0)
+    }
+}
+
+fn parse(s: &str) -> nm::IResult<&str, Vec<(u16, (Vec<u16>, Vec<u16>))>> {
+    let u16list = || nm::separated_list1(nm::space1, nm::u16);
+    let win_have = nm::separated_pair(u16list(), nm::ws(nm::tag("|")), u16list());
+    let id = nm::delimited(nm::ws(nm::tag("Card")), nm::u16, nm::ws(nm::tag(":")));
+    let card = nm::pair(id, win_have);
+    nm::separated_list1(nm::newline, card)(s)
 }
 
 fn solution(input_s: &str) -> Result<[String; 2]> {
-    let u16list = || nm::separated_list1(
-        nm::space1::<&str, nm::Error<_>>,
-        nm::u16::<&str, nm::Error<_>>,
-    );
-    let win_have = nm::separated_pair(
-        u16list(),
-        nm::pair(nm::tag(" |"),nm::space1::<&str, nm::Error<_>>),
-        u16list(),
-    );
-    let id = nom::sequence::delimited(
-        nm::pair(nm::tag("Card"),nm::space1::<&str, nm::Error<_>>),
-        nm::u16,
-        nm::pair(nm::tag(":"),nm::space1::<&str, nm::Error<_>>),
-    );
-    let card = nm::pair(id, win_have);
-    let mut all = nm::separated_list1(nm::newline, card);
-    let (_rest, input): (&str, Vec<(u16, (Vec<u16>, Vec<u16>))>) =
-        all(input_s.trim_end()).map_err(|e| e.to_owned())?;
+    let (_rest, input) = parse(input_s).map_err(|e| e.to_owned())?;
     // println!("Rest: \n{}\nEND OF REST", rest);
     //println!("Input: {:?}", input);
 

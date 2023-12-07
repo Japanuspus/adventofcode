@@ -60,6 +60,50 @@ As an example, consider this
 
 Here the two pair-entries would ideally be defined externally, but this results in an "already borrowed"-error.
 
+### Followup: making nom less verbose
+
+Did the following:
+- define my own module to re-export all relevant nom symbols without hierarchy.
+- use closure to generate the `u16list`-parser.
+- move parser to separate function with `IResult` return type to avoid turbofishes.
+- use the `ws`-combinator from the nom recipes page
+```
+mod nm {
+    pub use nom::multi::*;
+    pub use nom::sequence::*;
+    pub use nom::character::complete::*;
+    pub use nom::bytes::complete::*;
+    pub use nom::error::*;
+    pub use nom::IResult;
+
+    /// A combinator that takes a parser `inner` and produces a parser that 
+    /// also consumes both leading and trailing whitespace, 
+    /// returning the output of `inner`.
+    pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
+        inner: F,
+    ) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+    where
+        F: Fn(&'a str) -> IResult<&'a str, O, E>,
+    {
+        delimited(multispace0, inner, multispace0)
+    }
+}
+```
+
+Then the mess above becomes:
+
+```
+fn parse(s: &str) -> nm::IResult<&str, Vec<(u16, (Vec<u16>, Vec<u16>))>> {
+    let u16list = || nm::separated_list1(nm::space1,nm::u16);
+    let win_have = nm::separated_pair(u16list(),nm::ws(nm::tag("|")),u16list());
+    let id = nm::delimited(nm::ws(nm::tag("Card")), nm::u16, nm::ws(nm::tag(":")));
+    let card = nm::pair(id, win_have);
+    nm::separated_list1(nm::newline, card)(s)
+}
+```
+
+Another simplification might be the `nom_regex` crate.
+
 ## Day 5: If You Give A Seed A Fertilizer (173 us)
 
 Thought long and hard to avoid having to deal with interval intersections, but in the end this was the way.
