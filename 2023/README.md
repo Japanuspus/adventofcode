@@ -71,3 +71,6 @@ Extension: clean up the four-way logic in the interval code.
 My double-based solution agreed with brute force for all my part 1 problems -- but not for the example part 1 problems, so I might be lucky on this one.
 
 
+## Day 7: (517 us)
+
+Did not read part two of the ranking properly and implemented normal poker ranking. Which incidentally gives the correct result for the example input...
