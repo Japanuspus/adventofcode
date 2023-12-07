@@ -4,34 +4,31 @@ use anyhow::{anyhow, Context, Result};
 use nom;
 use std::{collections::HashSet, fs, time::Instant};
 
+mod nm {
+    pub use nom::multi::*;
+    pub use nom::sequence::*;
+    pub use nom::character::complete::*;
+    pub use nom::bytes::complete::*;
+    pub use nom::error::*;
+}
+
 fn solution(input_s: &str) -> Result<[String; 2]> {
-    let win_have = nom::sequence::separated_pair(
-        nom::multi::separated_list1(
-            nom::character::complete::space1::<&str, nom::error::Error<_>>,
-            nom::character::complete::u16::<&str, nom::error::Error<_>>,
-        ),
-        nom::sequence::pair(
-            nom::bytes::complete::tag(" |"),
-            nom::character::complete::space1::<&str, nom::error::Error<_>>,
-        ),
-        nom::multi::separated_list1(
-            nom::character::complete::space1::<&str, nom::error::Error<_>>,
-            nom::character::complete::u16::<&str, nom::error::Error<_>>,
-        ),
+    let u16list = || nm::separated_list1(
+        nm::space1::<&str, nm::Error<_>>,
+        nm::u16::<&str, nm::Error<_>>,
+    );
+    let win_have = nm::separated_pair(
+        u16list(),
+        nm::pair(nm::tag(" |"),nm::space1::<&str, nm::Error<_>>),
+        u16list(),
     );
     let id = nom::sequence::delimited(
-        nom::sequence::pair(
-            nom::bytes::complete::tag("Card"),
-            nom::character::complete::space1::<&str, nom::error::Error<_>>,
-        ),
-        nom::character::complete::u16,
-        nom::sequence::pair(
-            nom::bytes::complete::tag(":"),
-            nom::character::complete::space1::<&str, nom::error::Error<_>>,
-        ),
+        nm::pair(nm::tag("Card"),nm::space1::<&str, nm::Error<_>>),
+        nm::u16,
+        nm::pair(nm::tag(":"),nm::space1::<&str, nm::Error<_>>),
     );
-    let card = nom::sequence::pair(id, win_have);
-    let mut all = nom::multi::separated_list1(nom::character::complete::newline, card);
+    let card = nm::pair(id, win_have);
+    let mut all = nm::separated_list1(nm::newline, card);
     let (_rest, input): (&str, Vec<(u16, (Vec<u16>, Vec<u16>))>) =
         all(input_s.trim_end()).map_err(|e| e.to_owned())?;
     // println!("Rest: \n{}\nEND OF REST", rest);
