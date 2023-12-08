@@ -118,3 +118,12 @@ My double-based solution agreed with brute force for all my part 1 problems -- b
 ## Day 7: (517 us)
 
 Did not read part two of the ranking properly and implemented normal poker ranking. Which incidentally gives the correct result for the example input...
+
+## Day 8: Haunted Wasteland (6.3ms)
+
+The closed-cycles but not Chinese remainder day.
+
+I missed the fact that the cycles looped back to start and spent time implementing chinese remainder for non-coprime moduli. Which is always good to have.
+
+Also, should have probably gone for `[u8;3]` keys in the hashmap. Strings and ownership always ends up being a hassle.
+
