@@ -1,0 +1,9 @@
+[dependencies]
+anyhow = "1.0"
+itertools = "0.12"
+
+[package]
+authors = ["Janus <janus@insignificancegalore.net>"]
+edition = "2021"
+name = "day09"
+version = "0.1.0"

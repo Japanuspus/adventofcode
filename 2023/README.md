@@ -123,7 +123,30 @@ Did not read part two of the ranking properly and implemented normal poker ranki
 
 The closed-cycles but not Chinese remainder day.
 
-I missed the fact that the cycles looped back to start and spent time implementing chinese remainder for non-coprime moduli. Which is always good to have.
+I missed the fact that the cycles looped back to start and spent time implementing chinese remainder for non-coprime moduli. Which is always good to have. Quoting for history as I may remove it:
+
+```rust
+use num::Integer};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct RSpec<T: Clone> {
+    n: T,
+    a: T,
+}
+
+fn chinese_remainder<T: Integer + Clone + fmt::Debug>(n1: RSpec<T>, n2: RSpec<T>) 
+    -> Option<RSpec<T>> {
+    let ee = T::extended_gcd(&n1.n, &n2.n);
+    if ee.gcd != T::one() && n1.a.mod_floor(&ee.gcd)!=n2.a.mod_floor(&ee.gcd) {
+        return None
+    }
+    let n = n1.n.clone() * n2.n.clone() / ee.gcd.clone();
+    let a = ((n1.a * ee.y * n2.n + n2.a * ee.x * n1.n) / ee.gcd.clone()).mod_floor(&n); 
+    Some(RSpec { n, a })
+}
+```
 
 Also, should have probably gone for `[u8;3]` keys in the hashmap. Strings and ownership always ends up being a hassle.
 
+
+## Day 9 Mirage Maintenance (200us)
