@@ -149,4 +149,11 @@ fn chinese_remainder<T: Integer + Clone + fmt::Debug>(n1: RSpec<T>, n2: RSpec<T>
 Also, should have probably gone for `[u8;3]` keys in the hashmap. Strings and ownership always ends up being a hassle.
 
 
-## Day 9 Mirage Maintenance (200us)
+## Day 9: Mirage Maintenance (200us)
+
+## Day 10: Pipe Maze (93ms) 
+
+Awesome day - everything worked in first try, and I got to revive some old code.
+I wrote a mathematica implementation of the code [found here](https://web.archive.org/web/20100430183237/http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html) 
+[back in 2008](https://insignificancegalore.net/2008/10/implementing-fast-point-in-polygon/).
+
