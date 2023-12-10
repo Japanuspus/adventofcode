@@ -1,7 +1,7 @@
 #![allow(unused_imports, dead_code)]
 
 use anyhow::{anyhow, Context, Result};
-use std::{fs, time::Instant, collections::HashMap};
+use std::{fs, time::Instant, collections::{HashMap, HashSet}};
 use vecmath::{vec2_add, vec2_scale, vec2_len, vec2_sub};
 
 // use parse_display::{Display, FromStr};
@@ -22,10 +22,6 @@ use vecmath::{vec2_add, vec2_scale, vec2_len, vec2_sub};
 type V = [i16;2];
 const NESW: [V;4] = [[0,-1], [1,0], [0,1], [-1,0]];
 
-// fn loop_length(map: &HashMap<V, u8>,p0: V, d0: V) {
-
-// }
-
 fn next_direction(s: u8, d: usize) -> Option<usize> {
     match (s, (d+2)%4) {
         (b'|', 0) => Some(2), 
@@ -44,6 +40,66 @@ fn next_direction(s: u8, d: usize) -> Option<usize> {
     }
 } 
 
+fn follow_pipe(map: &HashMap<V, u8>, p0: V, d0: usize) -> Option<Vec<V>> {
+    // loop_length(map, p0, d0) -> Option<usize>
+    let mut p = p0;
+    let mut d = d0;
+    let mut i: Vec<V> = Vec::new();
+    
+    loop {
+        // println!("{:?}, d:{}, i:{}", p, d, i);
+        i.push(p);
+        p = vec2_add(p, NESW[d]);
+        if let Some(&c) = map.get(&p) {
+            if c==b'S' {
+                return Some(i)
+            }
+            //println!(">{}: {:?}, {}, {}", c as char, p, d, i);
+            if let Some(d_new) = next_direction(c, d) {
+                //println!("<{}: {:?}, {}, {}", c as char, p, d, i);
+                d=d_new;
+            } else {
+                return None
+            }
+        } else {
+            return None
+        }
+    }
+}
+
+// redoing https://insignificancegalore.net/2008/10/implementing-fast-point-in-polygon/
+// If there is only one connected component, then it is optional to repeat the first vertex at the end. It's also optional to surround the component with zero vertices.
+// https://web.archive.org/web/20100430183237/http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html
+
+// int pnpoly(int nvert, float *vertx, float *verty, float testx, float testy)
+// {
+//   int i, j, c = 0;
+//   for (i = 0, j = nvert-1; i < nvert; j = i++) {
+//     if ( ((verty[i]>testy) != (verty[j]>testy)) &&
+//   (testx < (vertx[j]-vertx[i]) * (testy-verty[i]) / (verty[j]-verty[i]) + vertx[i]) )
+//        c = !c;
+//   }
+//   return c;
+// }
+
+fn pnpoly(edge: &Vec<V>, test: V) -> bool {
+    let mut c: bool = false;
+    let n = edge.len();
+    let mut i: usize=0;
+    let mut j=n-1;
+    while i<n {
+        let vi = edge[i];
+        let vj = edge[j];
+        if 
+            ((vi[1]>test[1]) != (vj[1]>test[1])) && 
+            (test[0] < (vj[0]-vi[0]) * (test[1]-vi[1]) / (vj[1]-vi[1]) + vi[0]) 
+        {c=!c};
+        j=i;
+        i+=1;        
+    }
+    c
+}
+
 fn solution(input_s: &str) -> Result<[String; 2]> {
     let map: HashMap<V, u8> = input_s
         .trim_end()
@@ -55,34 +111,22 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
         .collect();
     let p0 = map.iter().find_map(|(k,v)| if *v==b'S' {Some(*k)} else {None}).unwrap();
 
-    let max_loop = (0..4usize).filter_map(|d0| {
-        // loop_length(map, p0, d0) -> Option<usize>
-        let mut p: V = p0;
-        let mut d = d0;
-        let mut i: usize = 0;
+    let max_loop_len = (0..4usize)
+    .filter_map(|d0| follow_pipe(&map, p0, d0).and_then(|l| Some(l.len())))
+    .max().unwrap();
+    let part1 = (max_loop_len+1)/2;
 
-        loop {
-            // println!("{:?}, d:{}, i:{}", p, d, i);
-            p = vec2_add(p, NESW[d]);
-            i += 1;
-            if let Some(&c) = map.get(&p) {
-                if c==b'S' {
-                    return Some(i)
-                }
-                //println!(">{}: {:?}, {}, {}", c as char, p, d, i);
-                if let Some(d_new) = next_direction(c, d) {
-                    //println!("<{}: {:?}, {}, {}", c as char, p, d, i);
-                    d=d_new;
-                } else {
-                    return None
-                }
-            } else {
-                return None
-            }
-        }
-    }).max().unwrap();
-    let part1 = (max_loop+1)/2;
-    let part2 = 0;
+    let max_loop = (0..4usize)
+    .filter_map(|d0| follow_pipe(&map, p0, d0)).filter(|l| l.len()==max_loop_len)
+    .next().unwrap();
+    
+    let x_max = max_loop.iter().map(|p| p[0]).max().unwrap();
+    let y_max = max_loop.iter().map(|p| p[1]).max().unwrap();
+    let on_edge: HashSet<V> = max_loop.iter().cloned().collect();
+    
+    let part2 = (0..x_max).flat_map(|x| (0..y_max).map(move |y| [x,y])).filter(|p| 
+        !on_edge.contains(p) && pnpoly(&max_loop, *p)
+    ).count();
 
     Ok([part1.to_string(), part2.to_string()])
 }
