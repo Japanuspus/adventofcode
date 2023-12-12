@@ -4,21 +4,6 @@ use anyhow::{anyhow, Context, Result};
 use std::{fs, time::Instant, str::FromStr};
 use itertools::Itertools;
 
-// use parse_display::{Display, FromStr};
-
-// #[derive(Display, FromStr, PartialEq, Debug)]
-// enum Direction {
-//     #[display("forward")]
-//     Forward,
-// }
-
-// #[derive(Debug, Display, FromStr)]
-// #[display("{direction} {distance}")]
-// struct Step {
-//     direction: Direction,
-//     distance: i32,
-// }
-
 #[derive(Debug)]
 struct Record {
     // LSB == Rightmost entry in definition string
@@ -58,64 +43,6 @@ fn parse_record() {
     assert_eq!(r.length, 6);
 }
 
-// struct Spacer {
-//     // n-1 dividers move between 0 and total_space (incl)
-//     dividers: [u8;64],
-//     n: usize,
-//     total_space: usize,
-//     init: bool,
-// }
-
-// impl Spacer {
-//     fn new(n: usize ,total_space: usize) -> Self {
-//         let mut dividers = [0u8;64]; // only 0..n are used
-//         for i in 0..(n-1) {dividers[i] = total_space as u8;}
-//         Self{dividers, n, total_space, init: True}
-//     }
-
-//     fn step(&mut self) -> bool {
-//         for i in 0..(self.n-1) {
-//             if self.dividers[i]>0 {
-//                 let v = self.dividers[i]-1;
-//                 for j in 0..(i+1) {
-//                     self.dividers[j]=v;
-//                 }
-//                 return true;
-//             }
-//         }
-//         false
-//     }
-// }
-
-// impl Iterator for Spacer {
-//     type Item = [u8;64];
-
-//     fn next(&mut self) -> Option<Self::Item> {
-//         if !self.init{
-//             if !self.step() {
-//                 return None
-//             }
-//         } else {
-//             self.init = false;
-//         }
-//         let mut spaces=[0u8;64];
-//         let mut last_div = 0;
-//         for i in 0..self.n {
-//             spaces[i] = self.dividers[i]-last_div;
-//             last_div = self.dividers[i];
-//         }
-//         Some(spaces)
-//     }
-// }
-
-// #[test]
-// fn test_spacer() {
-//     let s = Spacer::new(3, 7);
-//     let mut v = [0u8;64];
-//     v[0] = 64;
-//     assert_eq!(s.next(), )
-// }
-
 fn part1(r: &Record, groups: &Vec<usize>) -> usize {
     let min_size: usize = groups.iter().sum::<usize>()+groups.len()-1;
     let max_shift = r.length - min_size;
@@ -153,11 +80,11 @@ fn part1(r: &Record, groups: &Vec<usize>) -> usize {
         break
     }
 
-    println!("Record: {:?}, {}", r, count);
+    //println!("Record: {:?}, {}", r, count);
     count
 }
 
-fn solution(input_s: &str) -> Result<[String; 2]> {
+fn bitfield_solution(input_s: &str) -> usize {
     let input: Vec<(Record, Vec<usize>)> = input_s
         .trim_end()
         .split("\n")
@@ -171,9 +98,74 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
         })
         .collect();
 
+    //println!("Max len x5: {}", input.iter().map(|r| r.0.length).max().unwrap());
 
-    let part1: usize = input.iter().map(|r| part1(&r.0, &r.1)).sum();
-    let part2 = 0;
+    input.iter().map(|r| part1(&r.0, &r.1)).sum()
+}
+
+// ******** recursive solver *****
+
+fn part2(rec: &[u8], grp: &[usize]) -> usize {
+    let max_shift = if let Some(first_hash) = rec.iter().enumerate().filter_map(|(i, v)| if *v==b'#' {Some(i)} else {None}).next() {
+        if grp.len()==0 {return 0}
+        first_hash
+    } else {
+        // no hash
+        if grp.len()==0 {return 1}
+        rec.len()
+    };
+    let g = grp[0];
+    let max_shift = if let Some(v) = rec.len().checked_sub(grp[0]) {
+        max_shift.min(v)
+    } else {
+        return 0
+    };
+ 
+    let mut count: usize = 0;
+    for shift in 0..max_shift+1 {
+        let mut feasible = rec[0..shift].iter().all(|&v| v==b'.' || v==b'?');
+        feasible &= rec[shift..shift+g].iter().all(|&v| v==b'#' || v==b'?');
+        feasible &= rec.get(shift+g).and_then(|&v| Some(v==b'.' || v==b'?')).unwrap_or(true);
+        if !feasible {continue}        
+
+        if g+shift+1>=rec.len() {
+            count += if grp.len()==1 {1} else {0}
+        } else {
+            count += part2(&rec[1+g+shift..], &grp[1..])
+        }
+    }
+    count
+}
+
+fn recursive_solution(input_s: &str, n_rep: usize) -> usize {
+    let input: Vec<(&[u8], Vec<usize>)> = input_s
+        .trim_end()
+        .split("\n")
+        .filter_map(|ln| {
+            ln.split_once(' ')
+            .and_then(|(b,r)| Some((
+                b.as_bytes(),
+                r.split(',').map(|s| s.parse().unwrap()).collect_vec()
+            )))
+        })
+        .collect();
+
+    
+    input.into_iter()
+    .map(|(rec, grp)| (
+        vec![rec;n_rep][..].join(&b'?'),
+        vec![grp;n_rep][..].concat(),
+    ))
+    .inspect(|(rec, grp)| println!("{:?} {:?}", std::str::from_utf8(rec).unwrap(), grp))
+    .map(|(rec, grp)| part2(&rec[..], &grp[..]))
+    .inspect(|v| println!("-> {}", v))
+    .sum()
+}
+
+
+fn solution(input_s: &str) -> Result<[String; 2]> {
+    let part1: usize = bitfield_solution(input_s);
+    let part2 = recursive_solution(input_s, 5);
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -184,15 +176,15 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert_eq!(res[0], "21");
-    assert_eq!(res[1], "0");
+    assert_eq!(res[1], "525152");
     Ok(())
 }
 
 fn main() -> Result<()> {
     let input = &fs::read_to_string("input.txt")?;
-    for _ in 0..20 {
-        solution(&input)?;
-    } //warmup
+    //for _ in 0..20 {
+    //    solution(&input)?;
+    //} //warmup
     let start = Instant::now();
     let res = solution(&input)?;
     println!(
