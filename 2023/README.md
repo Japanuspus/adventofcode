@@ -157,3 +157,18 @@ Awesome day - everything worked in first try, and I got to revive some old code.
 I wrote a mathematica implementation of the code [found here](https://web.archive.org/web/20100430183237/http://www.ecse.rpi.edu/Homepages/wrf/Research/Short_Notes/pnpoly.html) 
 [back in 2008](https://insignificancegalore.net/2008/10/implementing-fast-point-in-polygon/).
 
+### Extension: Vectorize the poin-in-polygon code
+
+This did not give any speedup.
+
+### Extension: Get this trait to work without taking ownership:
+
+```
+trait PolyTester {
+    fn new(edge: Vec<V>) -> Self;
+    fn point_in_poly(&self, test: V) -> bool;
+}
+```
+
+
+## Day 11: Cosmic Expansion (177us)

@@ -8,6 +8,7 @@ use std::{
     time::Instant,
 };
 use vecmath::{vec2_add, vec2_len, vec2_scale, vec2_sub};
+use rayon::prelude::*;
 
 type V = [i16; 2];
 const NESW: [V; 4] = [[0, -1], [1, 0], [0, 1], [-1, 0]];
@@ -65,7 +66,60 @@ fn pnpoly(edge: &Vec<V>, test: V) -> bool {
     ).count()%2!=0
 }
 
-fn solution(input_s: &str) -> Result<[String; 2]> {
+// stretch goal: use &Vec in this trait and implementation (I tried and failed) 
+trait PolyTester {
+    fn new(edge: Vec<V>) -> Self;
+    fn point_in_poly(&self, test: V) -> bool;
+}
+
+struct PNPolyTester {
+    edge: Vec<V>,
+}
+
+// 47ms
+impl PolyTester for PNPolyTester {
+    fn new(edge: Vec<V>) -> Self { Self { edge } }
+    fn point_in_poly(&self, test: V) -> bool { pnpoly(&self.edge, test)}
+}
+
+struct Segment {
+    x1: i16,
+    y1: i16,
+    y2: i16,
+    dx: i16,
+    dy: i16,
+}
+struct VecPolyTester {
+    edge: Vec<V>,
+    segments: Vec<Segment>,
+}
+
+// 47ms
+impl PolyTester for VecPolyTester {
+    fn new(edge: Vec<V>) -> Self {
+        let segments: Vec<_> = 
+        std::iter::once(&[edge[edge.len()-1], edge[0]][..]).chain(edge.windows(2))
+        .map(|w| Segment{
+            x1: w[0][0],
+            y1: w[0][1],
+            y2: w[1][1],
+            dx: w[1][0]-w[0][0],
+            dy: w[1][1]-w[0][1],
+        }).collect();
+        Self{edge, segments}
+    }
+    fn point_in_poly(&self, test: V) -> bool {
+        let (x, y) = (test[0], test[1]);
+        self.segments.iter().filter(
+            |s| ((s.y1>y) != (s.y2>y)) && ((x-s.x1)<s.dx*(y-s.y1)/s.dy)
+        ).count()%2 !=0
+    }
+}
+
+fn solution<T>(input_s: &str) -> Result<[String; 2]> 
+where
+    T: PolyTester + std::marker::Sync
+{
     let map: HashMap<V, u8> = input_s
         .trim_end()
         .split("\n")
@@ -90,68 +144,54 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
     let x_max = max_loop.iter().map(|p| p[0]).max().unwrap();
     let y_max = max_loop.iter().map(|p| p[1]).max().unwrap();
     let on_edge: HashSet<V> = max_loop.iter().cloned().collect();
-    let part2 = (0..x_max)
-        .flat_map(|x| (0..y_max).map(move |y| [x, y]))
-        .filter(|p| !on_edge.contains(p) && pnpoly(&max_loop, *p))
-        .count();
+    let pt = T::new(max_loop);
+    let part2: usize = (0..x_max).into_par_iter()
+        .map(|x| 
+            (0..y_max)
+            .map(move |y| [x, y])
+            .filter(|p| !on_edge.contains(p) && pt.point_in_poly(*p))
+            .count()
+        ).sum();
 
     Ok([part1.to_string(), part2.to_string()])
 }
 
+type Solution = dyn Fn(&str) -> Result<[String; 2]>;
+const SOLUTIONS: [(&str, &Solution); 2] = [
+    ("Original", &solution::<PNPolyTester>),
+    ("Vec", &solution::<VecPolyTester>),
+];
+
 #[test]
 fn test_solution() -> Result<()> {
     let input = &fs::read_to_string("test07.txt")?;
-    let res = solution(&input)?;
-    println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
-    assert_eq!(res[0], "8");
-    //assert_eq!(res[1], "0");
+    for (name, solution) in SOLUTIONS {
+        let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
+        println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
+        assert_eq!(res[0], "8");
+    }
+
+    let input = &fs::read_to_string("test14.txt")?;
+    for (name, solution) in SOLUTIONS {
+        let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
+        println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
+        assert_eq!(res[1], "10");
+    }
     Ok(())
 }
 
 fn main() -> Result<()> {
     let input = &fs::read_to_string("input.txt")?;
-    for _ in 0..20 {
+    for (_, solution) in SOLUTIONS.iter().cycle().take(10) {
         solution(&input)?;
     } //warmup
-    let start = Instant::now();
-    let res = solution(&input)?;
-    println!(
-        "({} us)\nPart 1: {}\nPart 2: {}",
-        start.elapsed().as_micros(),
-        res[0],
-        res[1],
-    );
+   for (name, solution) in SOLUTIONS {
+        let start = Instant::now();
+        let res = solution(&input)?;
+        println!(
+            "---\n{} ({} us)\nPart 1: {}\nPart 2: {}",
+            name, start.elapsed().as_micros(), res[0], res[1],
+        );
+    }
     Ok(())
 }
-
-// // Make it simple to compare timing for multiple solutions
-// type Solution = dyn Fn(&str) -> Result<[String; 2]>;
-// const SOLUTIONS: [(&str, &Solution); 1] = [("Original", &solution)];
-
-// #[test]
-// fn test_solution() -> Result<()> {
-//     let input = &fs::read_to_string("test00.txt")?;
-//     for (name, solution) in SOLUTIONS {
-//         let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
-//         println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
-//         assert_eq!(res[0], "0");
-//         assert_eq!(res[1], "0");
-//     }
-//     Ok(())
-// }
-
-// fn main() -> Result<()> {
-//     let input = &fs::read_to_string("input.txt")?;
-//     for (_, solution) in SOLUTIONS.iter().cycle().take(10) {
-//         solution(&input)?;
-//     } //warmup
-//     for (name, solution) in SOLUTIONS {
-//         let start = Instant::now();
-//         let res = solution(&input)?;
-//         println!(
-//             "---\n{} ({} us)\nPart 1: {}\nPart 2: {}",
-//             name, start.elapsed().as_micros(), res[0], res[1],
-//         );
-//     }
-//     Ok(())
-// }
