@@ -3,6 +3,7 @@
 use anyhow::{anyhow, Context, Result};
 use std::{fs, time::Instant, str::FromStr};
 use itertools::Itertools;
+use rayon::prelude::*;
 
 #[derive(Debug)]
 struct Record {
@@ -105,7 +106,8 @@ fn bitfield_solution(input_s: &str) -> usize {
 
 // ******** recursive solver *****
 
-fn part2(rec: &[u8], grp: &[usize]) -> usize {
+fn part2(rec: &[u8], grp: &[usize], min_shift: usize) -> usize {
+    let min_pattern_length = if grp.len()==0 {0} else {grp.iter().sum::<usize>()+grp.len()-1};
     let max_shift = if let Some(first_hash) = rec.iter().enumerate().filter_map(|(i, v)| if *v==b'#' {Some(i)} else {None}).next() {
         if grp.len()==0 {return 0}
         first_hash
@@ -115,23 +117,23 @@ fn part2(rec: &[u8], grp: &[usize]) -> usize {
         rec.len()
     };
     let g = grp[0];
-    let max_shift = if let Some(v) = rec.len().checked_sub(grp[0]) {
+
+    let max_shift = if let Some(v) = rec.len().checked_sub(min_pattern_length) {
         max_shift.min(v)
     } else {
         return 0
     };
  
     let mut count: usize = 0;
-    for shift in 0..max_shift+1 {
+    for shift in min_shift..max_shift+1 {
         let mut feasible = rec[0..shift].iter().all(|&v| v==b'.' || v==b'?');
         feasible &= rec[shift..shift+g].iter().all(|&v| v==b'#' || v==b'?');
-        feasible &= rec.get(shift+g).and_then(|&v| Some(v==b'.' || v==b'?')).unwrap_or(true);
         if !feasible {continue}        
 
-        if g+shift+1>=rec.len() {
+        if g+shift==rec.len() {
             count += if grp.len()==1 {1} else {0}
         } else {
-            count += part2(&rec[1+g+shift..], &grp[1..])
+            count += part2(&rec[g+shift..], &grp[1..], 1)
         }
     }
     count
@@ -151,15 +153,19 @@ fn recursive_solution(input_s: &str, n_rep: usize) -> usize {
         .collect();
 
     
-    input.into_iter()
+    let input = input.into_iter()
     .map(|(rec, grp)| (
         vec![rec;n_rep][..].join(&b'?'),
         vec![grp;n_rep][..].concat(),
     ))
-    .inspect(|(rec, grp)| println!("{:?} {:?}", std::str::from_utf8(rec).unwrap(), grp))
-    .map(|(rec, grp)| part2(&rec[..], &grp[..]))
-    .inspect(|v| println!("-> {}", v))
-    .sum()
+    .collect_vec();
+
+    input.par_iter()
+    .map(|(rec, grp)| {
+        let res = part2(&rec[..], &grp[..], 0);
+        println!("{:8}: {:?} {:?}", res, std::str::from_utf8(rec).unwrap(), grp);
+        res
+    }).sum()
 }
 
 

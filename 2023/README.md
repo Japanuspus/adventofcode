@@ -172,3 +172,11 @@ trait PolyTester {
 
 
 ## Day 11: Cosmic Expansion (177us)
+
+
+## Day 12: Point of Incidence (91us)
+
+My first successful use of `rust ndarray`. Overall a good experience: passing views worked without type insanity, and [Zip](https://docs.rs/ndarray/latest/ndarray/struct.Zip.html) fitted the problem perfectly. 
+
+To be honest the, ndarray zip-fold with no `Option` or `Result`-wrapping felt somewhat unrusty, but much nicer ergonomics for AOC-style things. Maybe I should just use `Array` instead of `Vec` in general...
+
