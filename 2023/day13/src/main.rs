@@ -2,51 +2,72 @@
 
 use anyhow::{anyhow, Context, Result};
 use itertools::Itertools;
-use ndarray::Array2;
+use ndarray::{Array2, ArrayView2, Zip};
 use std::{fs, time::Instant};
 
+fn row_sym(m: ArrayView2<u8>) -> Option<usize> {
+    (1..m.nrows()).find(|&i| {
+        (0..i)
+            .rev()
+            .zip(i..m.nrows())
+            .all(|(i1, i2)| m.row(i1) == m.row(i2))
+    })
+}
 
-fn part1(s: &str) -> Result<usize> {
-    let mut nrows: usize =0;
+fn smudged_row_sym(m: ArrayView2<u8>) -> Option<usize> {
+    (1..m.nrows()).find(|&i| {
+        let mut smudged = false;
+        for (i1, i2) in (0..i).rev().zip(i..m.nrows()) {
+            let n_diff: usize = Zip::from(m.row(i1))
+                .and(m.row(i2))
+                .fold(0, |acc, a, b| acc + if a != b { 1 } else { 0 });
+            if n_diff == 0 {
+                continue;
+            }
+            if smudged || n_diff > 1 {
+                return false;
+            }
+            smudged = true;
+        }
+        smudged
+    })
+}
+
+fn part1(m: &Array2<u8>) -> usize {
+    row_sym(m.view())
+        .and_then(|v| Some(100 * v))
+        .or_else(|| row_sym(m.t()))
+        .unwrap_or(0)
+}
+
+fn part2(m: &Array2<u8>) -> usize {
+    smudged_row_sym(m.view())
+        .and_then(|v| Some(100 * v))
+        .or_else(|| smudged_row_sym(m.t()))
+        .unwrap_or(0)
+}
+
+fn parse_array(s: &str) -> Result<Array2<u8>> {
+    let mut nrows: usize = 0;
     let cs: Vec<u8> = s
         .split("\n")
-        .inspect(|_| {nrows+=1})
+        .inspect(|_| nrows += 1)
         .flat_map(|ln| ln.as_bytes().iter())
         .cloned()
         .collect();
-    let ncols = cs.len()/nrows;
-    let m = Array2::from_shape_vec((nrows, ncols), cs)?;
-
-    let rsym = (1..nrows).find(|&i| 
-        (0..i).rev().zip(i..nrows).all(|(i1, i2)| m.row(i1)==m.row(i2))
-    ).unwrap_or(0);
-    
-    let csym = (1..ncols).find(|&i| 
-        (0..i).rev().zip(i..ncols).all(|(i1, i2)| m.column(i1)==m.column(i2))
-    ).unwrap_or(0);
-    
-    Ok(csym+100*rsym)
+    let ncols = cs.len() / nrows;
+    Array2::from_shape_vec((nrows, ncols), cs).context("Parsing map array")
 }
 
-// #[test]
-// fn test_part1() {
-//     let input = &fs::read_to_string("test00.txt")?;
-//     assert_eq!(part1(input), Ok())
-//     let res = solution(&input)?;
-//     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
-//     assert_eq!(res[0], "");
-//     assert_eq!(res[1], "0");
-//     Ok(())
-// }
-
 fn solution(input_s: &str) -> Result<[String; 2]> {
-    let part1: usize = input_s
+    let input: Vec<Array2<_>> = input_s
         .trim_end()
         .split("\n\n")
-        .map(|s| part1(s))
-        .sum::<Result<_>>()?;
+        .map(|s| parse_array(s))
+        .collect::<Result<_>>()?;
 
-        let part2 = 0;
+    let part1: usize = input.iter().map(|m| part1(m)).sum();
+    let part2: usize = input.iter().map(|m| part2(m)).sum();
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -57,7 +78,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert_eq!(res[0], "405");
-    assert_eq!(res[1], "0");
+    assert_eq!(res[1], "400");
     Ok(())
 }
 
@@ -76,35 +97,3 @@ fn main() -> Result<()> {
     );
     Ok(())
 }
-
-// // Make it simple to compare timing for multiple solutions
-// type Solution = dyn Fn(&str) -> Result<[String; 2]>;
-// const SOLUTIONS: [(&str, &Solution); 1] = [("Original", &solution)];
-
-// #[test]
-// fn test_solution() -> Result<()> {
-//     let input = &fs::read_to_string("test00.txt")?;
-//     for (name, solution) in SOLUTIONS {
-//         let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
-//         println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
-//         assert_eq!(res[0], "0");
-//         assert_eq!(res[1], "0");
-//     }
-//     Ok(())
-// }
-
-// fn main() -> Result<()> {
-//     let input = &fs::read_to_string("input.txt")?;
-//     for (_, solution) in SOLUTIONS.iter().cycle().take(10) {
-//         solution(&input)?;
-//     } //warmup
-//     for (name, solution) in SOLUTIONS {
-//         let start = Instant::now();
-//         let res = solution(&input)?;
-//         println!(
-//             "---\n{} ({} us)\nPart 1: {}\nPart 2: {}",
-//             name, start.elapsed().as_micros(), res[0], res[1],
-//         );
-//     }
-//     Ok(())
-// }
