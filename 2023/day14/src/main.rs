@@ -85,9 +85,9 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
 
     let n = 1_000_000_000;
     let n_cycle = repeat.1-repeat.0;
-    let n_eff = (n % n_cycle)+((repeat.1/n_cycle)+1)*n_cycle;
-
+    let n_eff = repeat.0+((n-repeat.0) % n_cycle);
     let balls3 = (0..n_eff).fold(Cow::Borrowed(&balls), |b, _| Cow::Owned(spin(&board, &b))).into_owned();
+
     let part2: usize = balls3.iter().map(|[_, y]| board.ny-*y as usize).sum();
 
     Ok([part1.to_string(), part2.to_string()])
@@ -105,9 +105,6 @@ fn test_solution() -> Result<()> {
 
 fn main() -> Result<()> {
     let input = &fs::read_to_string("input.txt")?;
-    // for _ in 0..20 {
-    //     solution(&input)?;
-    // } //warmup
     let start = Instant::now();
     let res = solution(&input)?;
     println!(

@@ -173,10 +173,30 @@ trait PolyTester {
 
 ## Day 11: Cosmic Expansion (177us)
 
+## Day 12: Hot Springs
 
-## Day 12: Point of Incidence (91us)
+I need to cache more!
+
+## Day 13: Point of Incidence (91us)
 
 My first successful use of `rust ndarray`. Overall a good experience: passing views worked without type insanity, and [Zip](https://docs.rs/ndarray/latest/ndarray/struct.Zip.html) fitted the problem perfectly. 
 
 To be honest the, ndarray zip-fold with no `Option` or `Result`-wrapping felt somewhat unrusty, but much nicer ergonomics for AOC-style things. Maybe I should just use `Array` instead of `Vec` in general...
 
+## Day 14: Parabolic Reflector Dish (7.6s)
+
+Got worried when my idea for cycle-detection was hit by `HashSet` not being hashable:
+```
+error[E0599]: the method `insert` exists for struct `HashMap<HashSet<[i8; 2]>, usize>`, but its trait bounds were not satisfied
+   --> src/main.rs:78:17
+    |
+78  |         if hist.insert(balls, hist.len()) {
+    |                 ^^^^^^
+    |
+...
+    = note: the following trait bounds were not satisfied:
+            `HashSet<[i8; 2]>: Hash`    
+```
+Luckily, `BTreeSet` implements `Hash`, and all was good.
+
+Runtime is so-so. Only obvious implementation inefficiency is repeating the spin cycles after finding the period, so I expect I am missing some algorithmic insight.
