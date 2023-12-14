@@ -199,4 +199,18 @@ error[E0599]: the method `insert` exists for struct `HashMap<HashSet<[i8; 2]>, u
 ```
 Luckily, `BTreeSet` implements `Hash`, and all was good.
 
+Was pretty happy about this COW-pattern:
+
+```rust
+fn tilt(board: &Board, balls: &BTreeSet<V>, d: V) -> BTreeSet<V> {
+    let mut balls: Cow<BTreeSet<V>> = Cow::Borrowed(balls);
+    ...
+    balls = Cow::Owned(new_balls);
+    ...
+    balls.into_owned()
+}
+
+```
+
 Runtime is so-so. Only obvious implementation inefficiency is repeating the spin cycles after finding the period, so I expect I am missing some algorithmic insight.
+
