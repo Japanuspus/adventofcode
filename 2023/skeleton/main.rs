@@ -2,6 +2,7 @@
 
 use anyhow::{anyhow, Context, Result};
 use std::{fs, time::Instant};
+use iterator::Iterator;
 
 // use parse_display::{Display, FromStr};
 
