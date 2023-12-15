@@ -170,12 +170,13 @@ trait PolyTester {
 }
 ```
 
-
 ## Day 11: Cosmic Expansion (177us)
 
-## Day 12: Hot Springs
+## Day 12: Hot Springs (35ms)
+My final solution is maybe caching too much -- went in to split up into two part before I realized I was spuriously returning without updating my manually updated cache.
 
-I need to cache more!
+- [ ] Read up on automatic memoization in rust
+- [ ] Read up on rust profiling options
 
 ## Day 13: Point of Incidence (91us)
 

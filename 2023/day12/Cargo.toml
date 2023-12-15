@@ -1,9 +1,6 @@
 [dependencies]
 anyhow = "1.0"
 itertools = "0.12"
-parse-display = "0.8"
-rayon = "1.8.0"
-regex = "1"
 
 [package]
 authors = ["Janus <janus@insignificancegalore.net>"]
