@@ -214,3 +214,8 @@ fn tilt(board: &Board, balls: &BTreeSet<V>, d: V) -> BTreeSet<V> {
 
 Runtime is so-so. Only obvious implementation inefficiency is repeating the spin cycles after finding the period, so I expect I am missing some algorithmic insight.
 
+## Day 15: Lens Library (230us)
+
+Used `let mut boxes: Vec<HashMap<&str, (u32, u8)>>` for storing boxes, with the first entry being the operation index to get correct front-to-back ordering.
+Worked fine, but I feel I have overlooked a data structure that would achieve this in a more scalable way.
+
