@@ -220,3 +220,19 @@ Runtime is so-so. Only obvious implementation inefficiency is repeating the spin
 Used `let mut boxes: Vec<HashMap<&str, (u32, u8)>>` for storing boxes, with the first entry being the operation index to get correct front-to-back ordering.
 Worked fine, but I feel I have overlooked a data structure that would achieve this in a more scalable way.
 
+## Day 16: The Floor Will Be Lava (340ms)
+
+The main dispatch was nice and compact, but I could not find a good way to avoid heap allocation for the outcome. 
+```
+let mut ds: Vec<V> = Vec::new();
+match (pd.1, circuit.get(&pd.0)) {
+    (d, None) => {ds.push(d);}
+    (d @ [0,_], Some('|')) => {ds.push(d);}
+    (d @ [_,0], Some('-')) => {ds.push(d);}
+    ([_,0], Some('|')) => {ds.push([0, 1]); ds.push([ 0,-1]);}
+    ([0,_], Some('-')) => {ds.push([1, 0]); ds.push([-1, 0]);}
+    ([dx, dy], Some('/'))  => {ds.push([-dy, -dx]);}
+    ([dx, dy], Some('\\')) => {ds.push([ dy,  dx]);}
+    _ => {}
+};
+```

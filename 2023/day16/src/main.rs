@@ -7,18 +7,8 @@ use itertools::Itertools;
 
 type V = [i16;2];
 
-fn solution(input_s: &str) -> Result<[String; 2]> {
-    let circuit: HashMap<V, char> = input_s
-        .trim_end()
-        .split("\n")
-        .enumerate()
-        .flat_map(|(y,s)| 
-            s.chars().enumerate().filter_map(move |(x, c)| if c=='.' {None} else {Some(([x as i16, y as i16], c))})
-        )
-        .collect();
-    let pmax: V = [0,1].map(|i| circuit.keys().map(|v| v[i]).max().unwrap());
-
-    let mut work: Vec<(V, V)> = vec![([0,0], [1,0])];
+fn count_energized(circuit: &HashMap<V, char>, pmax: V, dp0: (V,V)) -> usize {
+    let mut work: Vec<(V, V)> = vec![dp0];
     let mut active: HashSet<(V, V)> = HashSet::new();
     while let Some(pd) = work.pop() {
         if pd.0.iter().zip(pmax.iter()).any(|(v, vmax)| *v<0 || v>  vmax) {continue}
@@ -37,20 +27,30 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
         for d in ds {
             work.push((vec2_add(pd.0, d), d));            
         };
-        //println!("{}: {:?} {:?} -> {:?}", work.len(), pd, circuit.get(&pd.0), &ds);
     }
+    active.iter().map(|(p, _)| *p).unique().count()
+}
 
-    // let energized: HashSet<V> = active.iter().map(|(p, _)| *p).collect();
-    // for y in 0..pmax[1] {
-    //     for x in 0..pmax[0] {
-    //         print!("{}", if energized.contains(&[x,y]) {'#'} else {'.'});
-    //     }
-    //     println!("");
-    // }
-    // let part1 = energized.len(); 
-    
-    let part1 = active.iter().map(|(p, _)| *p).unique().count();
-    let part2 = 0;
+fn solution(input_s: &str) -> Result<[String; 2]> {
+    let circuit: HashMap<V, char> = input_s
+        .trim_end()
+        .split("\n")
+        .enumerate()
+        .flat_map(|(y,s)| 
+            s.chars().enumerate().filter_map(move |(x, c)| 
+                if c=='.' {None} else {Some(([x as i16, y as i16], c))})
+        )
+        .collect();
+    let pmax: V = [0,1].map(|i| circuit.keys().map(|v| v[i]).max().unwrap());
+
+    let part1 = count_energized(&circuit, pmax, ([0,0], [1,0]));
+
+    let mut starts: Vec<(V,V)> = Vec::new();
+    starts.extend((0..pmax[0]).map(|x| ([x,       0], [ 0, 1])));
+    starts.extend((0..pmax[0]).map(|x| ([x, pmax[1]], [ 0,-1])));
+    starts.extend((0..pmax[1]).map(|y| ([0,       y], [ 1, 0])));
+    starts.extend((0..pmax[1]).map(|y| ([pmax[0], y], [-1, 0])));
+    let part2 = starts.into_iter().map(|dp| count_energized(&circuit, pmax, dp)).max().unwrap();
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -61,7 +61,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert_eq!(res[0], "46");
-    assert_eq!(res[1], "0");
+    assert_eq!(res[1], "51");
     Ok(())
 }
 
@@ -80,35 +80,3 @@ fn main() -> Result<()> {
     );
     Ok(())
 }
-
-// // Make it simple to compare timing for multiple solutions
-// type Solution = dyn Fn(&str) -> Result<[String; 2]>;
-// const SOLUTIONS: [(&str, &Solution); 1] = [("Original", &solution)];
-
-// #[test]
-// fn test_solution() -> Result<()> {
-//     let input = &fs::read_to_string("test00.txt")?;
-//     for (name, solution) in SOLUTIONS {
-//         let res = solution(&input).with_context(|| format!("Running solution {}", name))?;
-//         println!("---\n{}\nPart 1: {}\nPart 2: {}", name, res[0], res[1]);
-//         assert_eq!(res[0], "0");
-//         assert_eq!(res[1], "0");
-//     }
-//     Ok(())
-// }
-
-// fn main() -> Result<()> {
-//     let input = &fs::read_to_string("input.txt")?;
-//     for (_, solution) in SOLUTIONS.iter().cycle().take(10) {
-//         solution(&input)?;
-//     } //warmup
-//     for (name, solution) in SOLUTIONS {
-//         let start = Instant::now();
-//         let res = solution(&input)?;
-//         println!(
-//             "---\n{} ({} us)\nPart 1: {}\nPart 2: {}",
-//             name, start.elapsed().as_micros(), res[0], res[1],
-//         );
-//     }
-//     Ok(())
-// }
