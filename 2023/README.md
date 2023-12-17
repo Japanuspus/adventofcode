@@ -236,3 +236,22 @@ match (pd.1, circuit.get(&pd.0)) {
     _ => {}
 };
 ```
+
+## Day 17: Clumsy Crucible (295ms)
+
+Tried profiling with `cargo instruments` (macOS-specific), but results where pretty useless due to the iterator chains.
+
+Installing and running the profiler was simple:
+
+```
+cargo install instruments
+```
+
+Then added this to `Cargo.toml`:
+```
+[profile.profiler]
+inherits = "release"
+debug = true
+```
+
+And ran a time-profile with `cargo instruments --profile profiler -t time`.
