@@ -255,3 +255,9 @@ debug = true
 ```
 
 And ran a time-profile with `cargo instruments --profile profiler -t time`.
+
+## Day 18: Lavaduct Lagoon (200us)
+
+Was happy when I realized that it was easy to get the answer from a Green's integral. Had almost started writing code to count inside and outside corners, when I realized that only the difference mattered.
+
+On the rust side, I could not get `parse-display-derive` to parse my hex code, so I ended up with some ugly string wrangling.
