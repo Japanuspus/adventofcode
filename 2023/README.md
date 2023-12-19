@@ -261,3 +261,9 @@ And ran a time-profile with `cargo instruments --profile profiler -t time`.
 Was happy when I realized that it was easy to get the answer from a Green's integral. Had almost started writing code to count inside and outside corners, when I realized that only the difference mattered.
 
 On the rust side, I could not get `parse-display-derive` to parse my hex code, so I ended up with some ugly string wrangling.
+
+## Day 19: Aplenty (190us)
+
+Went with `nom` for the parsing. Was probably an ok choice, but took a while...
+
+Did the interval arithmetic manually. Considered using the [interval](https://docs.rs/intervallum/latest/interval/interval/index.html) crate, but is seems mainly aimed at [interval arithmetic](https://en.wikipedia.org/wiki/Interval_arithmetic), so may not be ergonomic for this.

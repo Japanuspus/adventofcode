@@ -19,6 +19,34 @@ use itertools::Itertools;
 //     distance: i32,
 // }
 
+// mod nm {
+//     pub use nom::multi::*;
+//     pub use nom::sequence::*;
+//     pub use nom::character::complete::*;
+//     pub use nom::bytes::complete::*;
+//     pub use nom::error::*;
+//     pub use nom::combinator::*;
+//     pub use nom::IResult;
+
+//     /// Ignore leading and trailing whitespace around `inner`
+//     pub fn ws<'a, F: 'a, O, E: ParseError<&'a str>>(
+//         inner: F,
+//     ) -> impl FnMut(&'a str) -> IResult<&'a str, O, E>
+//     where
+//         F: Fn(&'a str) -> IResult<&'a str, O, E>,
+//     {
+//         delimited(multispace0, inner, multispace0)
+//     }
+// }
+// fn parse(s: &str) -> nm::IResult<&str, (Vec<WF>, Vec<Material>)> {
+//     nm::separated_pair(
+//         parse_wf, 
+//         nm::tag("\n\n"), 
+//         parse_material
+//     )(s)
+// }
+// let (rest, (wf, materials)) = parse(input_s).map_err(|e| e.to_owned())?;
+
 fn solution(input_s: &str) -> Result<[String; 2]> {
     let input: Vec<i32> = input_s
         .trim_end()
@@ -44,17 +72,13 @@ fn test_solution() -> Result<()> {
 
 fn main() -> Result<()> {
     let input = &fs::read_to_string("input.txt")?;
-    for _ in 0..20 {
-        solution(&input)?;
-    } //warmup
     let start = Instant::now();
-    let res = solution(&input)?;
-    println!(
-        "({} us)\nPart 1: {}\nPart 2: {}",
-        start.elapsed().as_micros(),
-        res[0],
-        res[1],
-    );
+    let (res, time) = loop { // run warmup for 100ms
+        let lap = Instant::now();
+        let res = solution(&input)?;
+        if start.elapsed().as_millis()>100 {break (res, lap.elapsed())};
+    };
+    println!( "({} us)\nPart 1: {}\nPart 2: {}", time.as_micros(), res[0], res[1]);
     Ok(())
 }
 

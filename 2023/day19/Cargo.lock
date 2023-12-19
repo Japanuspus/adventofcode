@@ -25,7 +25,6 @@ dependencies = [
  "itertools",
  "nom",
  "parse-display",
- "regex",
 ]
 
 [[package]]
