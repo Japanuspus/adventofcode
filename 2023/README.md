@@ -267,3 +267,34 @@ On the rust side, I could not get `parse-display-derive` to parse my hex code, s
 Went with `nom` for the parsing. Was probably an ok choice, but took a while...
 
 Did the interval arithmetic manually. Considered using the [interval](https://docs.rs/intervallum/latest/interval/interval/index.html) crate, but is seems mainly aimed at [interval arithmetic](https://en.wikipedia.org/wiki/Interval_arithmetic), so may not be ergonomic for this.
+
+## Day 20: : Pulse Propagation (37ms)
+Positives - nom was nice for the parsing:
+```
+fn parse(s: &str) -> nm::IResult<&str, Vec<ModuleSpec>> {
+    let modtype = nm::opt(nm::one_of("&%"));
+    let modspec = nm::pair(modtype, nm::alpha1);
+    let receivers = nm::separated_list1(nm::ws(nm::char(',')),nm::alpha1);
+    let module = nm::separated_pair(modspec, nm::ws(nm::tag("->")), receivers);
+    nm::separated_list1(nm::newline, module)(s)
+}
+```
+
+Part 2 was a very hand-held process of finding the structure of the signaling system. I left the code in spite of wanting to delete it all. 
+
+The modules were divided into disjunct networks that each fed one input of the final conjunction. Each part had a loop period, but the initial state was not on the stable attractor so it took a full hash-setup to find it.
+
+Only after that did i look at the outputs from the relevant nodes, and found that they sent their signals just before returning to the first non-trivial state:
+
+```
+x0 --> x1 --> x2 --> x4 - .... xn
+       ^                        |
+       |--- (signal here) ------v
+```
+So that e.g. n=4 would correspond to cycle length of 4, and signal after 4 button presses (had an off-by-one on this...).
+
+All in all, after finding the cycles, part 2 answer was the lowest common multiple.
+
+Off course, it would have been easier to just look at the output of the four interesting nodes and look for cycles there. But what would be the fun of that.
+
+On the rust-side, I gave up on handling the state mutations in a function -- luckily it all worked when inlined.
