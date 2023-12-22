@@ -54,11 +54,11 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
         } 
     }
 
-    let mut nb_below: Vec<Vec<(usize, i16)>> = (0..blocks.len()).map(|_| Vec::new()).collect(); //(identifier, distance plus 1)
+    let mut nb_below: Vec<HashSet<(usize, i16)>> = (0..blocks.len()).map(|_| HashSet::new()).collect(); //(identifier, distance plus 1)
     for c in columns.values() {
         for (((_,zb),idb), ((zt,_), idt)) in c.iter().tuple_windows() {
             assert!(zt>zb);
-            nb_below[*idt].push((*idb, zt-zb));
+            nb_below[*idt].insert((*idb, zt-zb));
         }
     }
 
