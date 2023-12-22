@@ -298,3 +298,24 @@ All in all, after finding the cycles, part 2 answer was the lowest common multip
 Off course, it would have been easier to just look at the output of the four interesting nodes and look for cycles there. But what would be the fun of that.
 
 On the rust-side, I gave up on handling the state mutations in a function -- luckily it all worked when inlined.
+
+## Day 21: Step Counter
+
+Part 2 was mostly manual, and only happened when I looked closely on the input:
+- The number of rounds corresponded to a half-integer multiple of the input size
+- The input pattern has vertical and horizontal clear lines, and large horizontal "firebreaks"
+
+Together this ensures that each block will be populates the same. 
+
+I used small inputs with same characteristics to fit a 2nd order poly, which then gave the solution.
+
+Code is a mess, of my attempts at a brute force solver.
+
+## Day 22: Sand Slabs (9.8ms)
+
+Used a `BTreeMap<(i16,i16), usize>>` for each `[x,y]`-pair to get the `nb_below` dependency while also tracking distances.
+Then a depth-first traversal in this graph, to find the blocks with no unsettled blocks below and find how they settled in order to build the `rests_on`-data which was enough to solve both part 1 and 2.
+
+The code maps the initial point pairs to a `Block`-structure which does not add any value. Also, since all the data structures were dense, I ended up using `usize`-indices rather than block refs. Not very rusty, really.
+
+- Extension: Remove the blocks-structure.
