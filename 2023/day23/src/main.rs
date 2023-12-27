@@ -1,7 +1,7 @@
 #![allow(unused_imports, dead_code)]
 
 use anyhow::{anyhow, Context, Result};
-use vecmath::vec2_add;
+use vecmath::{vec2_add, vec2_scale};
 use std::{fs, time::Instant, collections::{HashMap, HashSet, BTreeSet}};
 use itertools::Itertools;
 
@@ -29,13 +29,16 @@ fn edge_norm(a: V, b: V) -> (V, V) {
 
 // Contracted graph
 // (length, direction: 1 ->, -1 <-, 0: <>, endpoint)
-type Edges = HashMap<V, HashSet<(i16, i16, V)>>;
+type Edges = HashMap<V, Vec<(i16, i16, V)>>;
 fn make_edges(map: &Map) -> Edges {
     let mut edges: Edges = HashMap::new();
     let mut work: Vec<(V,V)> = vec![([1,0],[0,1])];
-    let mut visited: HashSet<V> = HashSet::new();
+    let mut complete: HashSet<(V, V)> = HashSet::new();
     while let Some(w_pd) = work.pop() {
-        let (s, d2, p2) = {
+        if !complete.insert(w_pd) {
+            continue;
+        }
+        let (s, d2, pd2) = {
             let mut s = 0;
             let mut pd: (V,V) = (vec2_add(w_pd.0, w_pd.1), w_pd.1);
             let mut c: char = map.paths[&pd.0];
@@ -55,11 +58,9 @@ fn make_edges(map: &Map) -> Edges {
 
                     if next_pdcs.len()!=1 {
                         // edge ends here
-                        if visited.insert(pd.0) {                        
-                            work.extend(
+                        work.extend(
                                 next_pdcs.iter().map(|((_, d2), _c)| (pd.0, *d2))
-                            );
-                        }
+                        );
                         break
                     } else {
                         (pd, c) = next_pdcs.pop().unwrap();
@@ -82,11 +83,12 @@ fn make_edges(map: &Map) -> Edges {
                 (false, false) => 0,
                 _ => panic!("Impassable path")
             };
-            (s, o, pd.0)
+            (s, o, pd)
         };
         // register both directions for this path
-        edges.entry(w_pd.0).or_default().insert((s, d2, p2));
-        edges.entry(p2).or_default().insert((s, -d2, w_pd.0));
+        edges.entry(w_pd.0).or_default().push((s, d2, pd2.0));
+        edges.entry(pd2.0).or_default().push((s, -d2, w_pd.0));
+        complete.insert((pd2.0, vec2_scale(pd2.1, -1)));
     }
     edges
 }
@@ -141,6 +143,13 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
     let map = parse(input_s);
     let edges = make_edges(&map);
     
+    for (v, cs) in &edges {
+        println!("{:?}", v);
+        for c in cs {
+            println!(" -> {:?}", c);
+        }
+    }
+
     let p1 = [1,0];
     let p2 = [map.pmax[0]-1, map.pmax[1]];
     let part1 = max_distance(&edges, &mut HashSet::new(),p1, p2).unwrap_or(0);
