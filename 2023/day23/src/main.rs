@@ -2,7 +2,7 @@
 
 use anyhow::{anyhow, Context, Result};
 use vecmath::vec2_add;
-use std::{fs, time::Instant, collections::{HashMap, HashSet}};
+use std::{fs, time::Instant, collections::{HashMap, HashSet, BTreeSet}};
 use itertools::Itertools;
 
 type V = [i16;2];
@@ -27,35 +27,11 @@ fn edge_norm(a: V, b: V) -> (V, V) {
     if a<b {(a,b)} else {(b,a)}
 }
 
-fn max_distance(
-    edges: &HashMap<V, Vec<(i16, i16, V)>>,
-    visited: &mut HashSet<(V, V)>,
-    p0: V, p1: V) 
--> Option<usize> {
-    if p0==p1 {
-        return Some(0)
-    }
-    let options = edges.get(&p0).iter().flat_map(|v| v.iter())
-        .filter(|(_s, o, _nb)| *o>=0)    
-        .filter(|(_s, _o, nb)| !visited.contains(&edge_norm(p0, *nb)))
-        .cloned().collect_vec();
-    let mut res = 0;
-    for (s, _, nb) in options {
-        let en = edge_norm(p0, nb);
-        visited.insert(en);
-        if let Some(from_here) = max_distance(edges, visited, nb, p1) {
-            res = res.max(s as usize + from_here);
-        }
-        visited.remove(&en);
-    }
-    if res==0 {None} else {Some(res)}
-}
-
-fn solution(input_s: &str) -> Result<[String; 2]> {
-    let map = parse(input_s);
-    
-    // (length, direction: 1 ->, -1 <-, 0: <>)
-    let mut edges: HashMap<V, Vec<(i16, i16, V)>> = HashMap::new();
+// Contracted graph
+// (length, direction: 1 ->, -1 <-, 0: <>, endpoint)
+type Edges = HashMap<V, HashSet<(i16, i16, V)>>;
+fn make_edges(map: &Map) -> Edges {
+    let mut edges: Edges = HashMap::new();
     let mut work: Vec<(V,V)> = vec![([1,0],[0,1])];
     let mut visited: HashSet<V> = HashSet::new();
     while let Some(w_pd) = work.pop() {
@@ -109,23 +85,66 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
             (s, o, pd.0)
         };
         // register both directions for this path
-        edges.entry(w_pd.0).or_default().push((s, d2, p2));
-        edges.entry(p2).or_default().push((s, -d2, w_pd.0));
+        edges.entry(w_pd.0).or_default().insert((s, d2, p2));
+        edges.entry(p2).or_default().insert((s, -d2, w_pd.0));
     }
+    edges
+}
 
-    for (v, cs) in &edges {
-        println!("{:?}", v);
-        for c in cs {
-            println!(" -> {:?}", c);
+fn max_distance(
+    edges: &Edges,
+    visited: &mut HashSet<(V, V)>,
+    p0: V, p1: V) 
+-> Option<usize> {
+    if p0==p1 {
+        return Some(0)
+    }
+    let options = edges.get(&p0).iter().flat_map(|v| v.iter())
+        .filter(|(_s, o, _nb)| *o>=0)    
+        .filter(|(_s, _o, nb)| !visited.contains(&edge_norm(p0, *nb)))
+        .cloned().collect_vec();
+    let mut res = 0;
+    for (s, _, nb) in options {
+        let en = edge_norm(p0, nb);
+        visited.insert(en);
+        if let Some(from_here) = max_distance(edges, visited, nb, p1) {
+            res = res.max(s as usize + from_here);
+        }
+        visited.remove(&en);
+    }
+    if res==0 {None} else {Some(res)}
+}
+
+fn max_dry_distance(
+    edges: &Edges,
+    visited: &mut HashSet<V>,
+    p0: V, p1: V) 
+-> Option<usize> {
+    if p0==p1 {
+        return Some(0)
+    }
+    let options = edges.get(&p0).iter().flat_map(|v| v.iter())
+        .filter(|(_s, _o, nb)| !visited.contains(nb))
+        .cloned().collect_vec();
+    let mut res = 0;
+    visited.insert(p0);
+    for (s, _, nb) in options {
+        if let Some(from_here) = max_dry_distance(edges, visited, nb, p1) {
+            res = res.max(s as usize + from_here);
         }
     }
+    visited.remove(&p0);
+    if res==0 {None} else {Some(res)}
+}
 
-    let part1 = max_distance(
-        &edges,
-        &mut HashSet::new(),
-        [1,0],
-        [map.pmax[0]-1, map.pmax[1]]).unwrap_or(0);
-    let part2 = 0;
+fn solution(input_s: &str) -> Result<[String; 2]> {
+    let map = parse(input_s);
+    let edges = make_edges(&map);
+    
+    let p1 = [1,0];
+    let p2 = [map.pmax[0]-1, map.pmax[1]];
+    let part1 = max_distance(&edges, &mut HashSet::new(),p1, p2).unwrap_or(0);
+    let part2 = max_dry_distance(&edges, &mut HashSet::new(), p1, p2).unwrap_or(0);
 
     Ok([part1.to_string(), part2.to_string()])
 }
@@ -136,7 +155,7 @@ fn test_solution() -> Result<()> {
     let res = solution(&input)?;
     println!("Part 1: {}\nPart 2: {}", res[0], res[1]);
     assert_eq!(res[0], "94");
-    assert_eq!(res[1], "0");
+    assert_eq!(res[1], "154");
     Ok(())
 }
 
