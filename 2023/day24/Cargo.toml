@@ -1,7 +1,9 @@
 [dependencies]
 anyhow = "1.0"
 itertools = "0.12"
+linfa-linalg = "0.1.0"
 ndarray = "0.15.6"
+num-traits = "0.2.17"
 parse-display = "0.8"
 regex = "1"
 vecmath = "1.0.0"

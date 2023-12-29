@@ -319,3 +319,8 @@ Then a depth-first traversal in this graph, to find the blocks with no unsettled
 The code maps the initial point pairs to a `Block`-structure which does not add any value. Also, since all the data structures were dense, I ended up using `usize`-indices rather than block refs. Not very rusty, really.
 
 - Extension: Remove the blocks-structure.
+
+## Day 23: A Long Walk (4.5s)
+
+Parsed directly to the contracted graph, but failed to realize I was adding most paths from both ends. This made the brute force for part 2 time out.
+
