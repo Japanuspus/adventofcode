@@ -1,0 +1,10 @@
+[dependencies]
+anyhow = "1.0"
+itertools = "0.12"
+keyed_priority_queue = "0.4.2"
+
+[package]
+authors = ["Janus <janus@insignificancegalore.net>"]
+edition = "2021"
+name = "day25"
+version = "0.1.0"
