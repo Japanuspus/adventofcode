@@ -7,13 +7,31 @@ use itertools::Itertools;
 
 use parse_display::{Display, FromStr};
 
+
+
+#[derive(Debug, Display, Clone, Copy)]
+struct HexNumber<T>(T);
+impl <T: num::Integer> std::str::FromStr for HexNumber<T> {
+    type Err=<T as num::Num>::FromStrRadixErr;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        T::from_str_radix(s, 16).and_then(|v| Ok(HexNumber(v)))
+    }
+}
+
+impl From<HexNumber<u64>> for u64 {
+    fn from(value: HexNumber<u64>) -> Self {
+        value.0
+    }
+}
+
 // L 6 (#2d8140)
 #[derive(Debug, Display, FromStr)]
 #[display("{direction} {distance} (#{hex})")]
 struct Edge {
     direction: char,
     distance: i64,
-    hex: String,
+    hex: HexNumber<u64>,
 }
 
 type V=[i64;2];
@@ -51,9 +69,9 @@ fn solution(input_s: &str) -> Result<[String; 2]> {
     //0 means R, 1 means D, 2 means L, and 3 means U.
     let dirs = [[1,0],[0,1],[-1,0],[0,-1]];
     let part2 = greens_area(input.iter().map(|e| {
-        let s=&e.hex;
-        let d=dirs[(s.as_bytes()[5]-b'0') as usize];
-        let n=i64::from_str_radix(&s[..5], 16).unwrap();
+        let h: u64=e.hex.into();
+        let d=dirs[(h&0b11) as usize];
+        let n=(h>>4) as i64;
         (d, n)
     }));
 
