@@ -324,3 +324,20 @@ The code maps the initial point pairs to a `Block`-structure which does not add 
 
 Parsed directly to the contracted graph, but failed to realize I was adding most paths from both ends. This made the brute force for part 2 time out.
 
+
+## Day 24
+
+Success: found a pure rust linear algebra crate: `linfa-linalg` that worked directly with ndarray.
+
+For part 2 I did the algebra. My own solution used only x and y-coords, but I figured there had to be a more elegant way and found the implemented solution in a reddit comment.
+
+To get around datatype issues, I solved approximately with `f64` and then computed the residual after rounding to `i128`. Assuming the velocity to be correct, I then re-solved the position part of the linear system to find corrections to the position.
+Plan was to do this for candidate velocities, but it turned out that first attempt was correct.
+
+## Day 25 (400ms)
+
+Implemented Stoer-Wagner for min-cut, based on the [networkx](https://networkx.org/documentation/networkx-2.4/_modules/networkx/algorithms/connectivity/stoerwagner.html#stoer_wagner) implementation.
+
+Wanted to use the graph data structure from `petgraph`, but was somewhat disgusted by the focus on enumerated nodes that I decided to build my own. Of course ended up spending a good while debugging my `merge`-implementation...
+
+Used the `keyed_priority_queue`-crate to get a b-tree/hashmap combo. Ergonomics were ok-ish (and better than `mut_binary_heap` which did not include keys in pop). 
