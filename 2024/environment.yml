@@ -1,0 +1,11 @@
+name: aoc
+channels:
+  - defaults
+dependencies:
+  - matplotlib
+  - numpy
+  - pip
+  - jupyter
+  - scipy
+  - jupytext
+
