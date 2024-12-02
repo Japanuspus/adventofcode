@@ -24,30 +24,19 @@ with open("input.txt") as f:
 
 
 # %%
-reports = [np.array([int(b) for b in ln.split()]) for ln in lines]
-
-# %%
-diffs = [np.diff(r) for r in reports]
+reports = [[int(b) for b in ln.split()] for ln in lines]
 
 
 # %%
 def check_report(r):
-    d = np.diff(r)
+    d = np.diff(np.array(r))
     ad = np.abs(d)
     return (np.all(d>0) or np.all(d<0)) and np.all(ad>=1) and np.all(ad<=3)
-
-sum(1 for r in reports if check_report(r))
-
-
-# %%
-def check_report_damper(ra):
-    r=ra.tolist()
-    for p in range(len(r)+1):
-        rsub = r[:max(p-1,0)]+r[p:]
-        if check_report(np.array(rsub)):
-            return True
-    return False
+len(list(filter(check_report, reports)))
 
 
 # %%
-sum(1 for r in reports if check_report_damper(r))
+def check_report_damper(r):
+    # leave out index p which may be outside list in which case whole list
+    return any(check_report(r[:p]+r[p+1:]) for p in range(len(r)+1))
+len(list(filter(check_report_damper, reports)))

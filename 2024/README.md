@@ -9,3 +9,8 @@ I will be coding in jupyter notebooks, but store them as [jupytext](https://jupy
 
 Happy to be back with numpy as a first class citizen :)
 Only thought of `itertools.groupby` after having done the grouping manually.
+
+## Day 02 - Red-Nosed Reports
+
+Saw my first ever HTTP-500 error from the AOC server! They must be seeing a massive onslaught each morning.
+Same as yesterday, I reflectively googled to see if `len(list(...))` is really the nicest way of counting an iterator in python, but I guess it is.
