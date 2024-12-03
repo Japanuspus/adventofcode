@@ -29,3 +29,10 @@ def check_report_damper(r):
 
 [len(list(filter(c, reports))) for c in [check_report, check_report_damper]]
 ```
+
+## Day 03 - Mull It Over
+
+My newfound [jupytext for VS-code](https://github.com/notebookPowerTools/vscode-jupytext) was having issues, so I ended up in jupyter lab again.
+
+Solved with `re` and learned that `re.findall` always returns tuples: no match objects.
+Tried [structural pattern matching](https://peps.python.org/pep-0636/) but liked the if-chain better.

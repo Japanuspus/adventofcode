@@ -15,11 +15,6 @@
 
 # %%
 import re
-import numpy as np
-import itertools
-
-# %%
-# ! aocprep
 
 # %%
 with open("input.txt") as f:
@@ -28,26 +23,37 @@ with open("input.txt") as f:
 
 # %%
 matches=re.findall(r"mul\((\d+),(\d+)\)", input)
-
-# %%
-sum(int(a)*int(b) for (a,b) in matches)
+print(sum(int(a)*int(b) for (a,b) in matches))
 
 # %%
 matches=re.findall(r"(mul\((\d+),(\d+)\))|(don't)|(do)", input)
-
-# %%
 s = 0
 d = True
 for m in matches:
     if m[4]:
         d=True
-        continue
     elif m[3]:
         d=False
-        print("saw dont")
-        continue
     elif d:
         s+=int(m[1])*int(m[2])
+print(s)
+
+# %% [markdown]
+# Alternative based on [structural pattern matching](https://peps.python.org/pep-0636/)
+
+# %%
+matches=re.findall(r"(mul\((\d+),(\d+)\))|(don't)|(do)", input)
+s = 0
+d = True
+for m in matches:
+    match m:
+        case (_,_,_,_,"do"):
+            d=True
+        case (_,_,_,"don't",_):
+            d=False
+        case (_,a,b,_,_):
+            if d:
+                s+=int(a)*int(b)
 s
 
 # %%
