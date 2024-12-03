@@ -14,3 +14,18 @@ Only thought of `itertools.groupby` after having done the grouping manually.
 
 Saw my first ever HTTP-500 error from the AOC server! They must be seeing a massive onslaught each morning.
 Same as yesterday, I reflectively googled to see if `len(list(...))` is really the nicest way of counting an iterator in python, but I guess it is.
+Still, after dropping numpy `diff` and cleaning up, the python solution is nice, compact and readable:
+
+```python
+with open("input.txt") as f:
+    reports = [[int(b) for b in ln.split()] for ln in f.read().strip().split("\n")]
+
+def check_report(r):
+    diffs = {b-a for a,b in zip(r, r[1:])}
+    return diffs<={-1,-2,-3} or diffs<={1,2,3}
+
+def check_report_damper(r):
+    return any(check_report(r[:p]+r[p+1:]) for p in range(len(r)+1))
+
+[len(list(filter(c, reports))) for c in [check_report, check_report_damper]]
+```
