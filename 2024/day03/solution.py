@@ -27,15 +27,12 @@ print(sum(int(a)*int(b) for (a,b) in matches))
 
 # %%
 matches=re.findall(r"(mul\((\d+),(\d+)\))|(don't)|(do)", input)
-s = 0
-d = True
-for m in matches:
-    if m[4]:
-        d=True
-    elif m[3]:
-        d=False
+s, d = 0, True
+for (_, a, b, dont, do)  in matches:
+    if do or dont:
+        d=bool(do)
     elif d:
-        s+=int(m[1])*int(m[2])
+        s+=int(a)*int(b)
 print(s)
 
 # %% [markdown]
@@ -47,11 +44,11 @@ s = 0
 d = True
 for m in matches:
     match m:
-        case (_,_,_,_,"do"):
+        case ('','','','',_):
             d=True
-        case (_,_,_,"don't",_):
+        case ('','','',_,''):
             d=False
-        case (_,a,b,_,_):
+        case (_,a,b,'',''):
             if d:
                 s+=int(a)*int(b)
 s
