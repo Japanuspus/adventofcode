@@ -36,3 +36,18 @@ My newfound [jupytext for VS-code](https://github.com/notebookPowerTools/vscode-
 
 Solved with `re` and learned that `re.findall` always returns tuples: no match objects.
 Tried [structural pattern matching](https://peps.python.org/pep-0636/) but liked the if-chain better.
+
+## Day 04 - Ceres Search
+
+First day working in VS-Code jupyter. Debugger and variable view are nicer than jupyter lab, but having to do jupytext as a followup step is not very ergonomic.
+
+Had fun trimming the final version down in size:
+```python
+with open("input.txt") as f:
+    cmap = {(x,y): c for (y, ln) in enumerate(f.read().strip().split("\n")) for (x, c) in enumerate(ln)}
+print(
+    sum(1 for (px,py) in cmap.keys() for (dx,dy) in [(1,0),(1,-1),(0,-1),(-1,-1),(-1,0),(-1,1),(0,1),(1,1)] 
+        if all(cmap.get((px+s*dx, py+s*dy), None)==c for s,c in enumerate("XMAS"))),
+    sum(1 for (px,py),c0 in cmap.items() if c0=='A' 
+        if all({cmap.get((px+s*dx, py+s*dy), None) for s in [1, -1]}=={'M','S'} for (dx,dy) in [(1,1), (-1,1)])))
+```

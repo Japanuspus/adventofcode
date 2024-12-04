@@ -45,4 +45,36 @@ for (px,py) in p0s:
 ct
 
 
+# %% [markdown]
+# ## Cleaner versions after submission
+
+# %%
+dirs = [(1,0),(1,-1),(0,-1),(-1,-1),(-1,0),(-1,1),(0,1),(1,1)]
+cand = [(p, d) for p in cmap.keys() for d in dirs]
+for s, c in enumerate("XMAS"):
+    cand = [((px,py),(dx,dy)) for ((px,py),(dx,dy)) in cand if cmap.get((px+s*dx, py+s*dy), None)==c]
+len(cand)
+
+# %%
+# complete pos/dir pair in one go:
+print(sum(1 for (px,py) in cmap.keys() for (dx,dy) in [(1,0),(1,-1),(0,-1),(-1,-1),(-1,0),(-1,1),(0,1),(1,1)] 
+          if all(cmap.get((px+s*dx, py+s*dy), None)==c for s,c in enumerate("XMAS"))))
+
+# %%
+# same for part 2:
+print(sum(1 for (px,py),c0 in cmap.items() 
+          if c0=='A' and all({cmap.get((px+s*dx, py+s*dy), None) for s in [1, -1]}=={'M','S'} for (dx,dy) in [(1,1), (-1,1)])))
+
+# %% [markdown]
+# ## Compact form:
+
+# %%
+with open("input.txt") as f:
+    cmap = {(x,y): c for (y, ln) in enumerate(f.read().strip().split("\n")) for (x, c) in enumerate(ln)}
+print(
+    sum(1 for (px,py) in cmap.keys() for (dx,dy) in [(1,0),(1,-1),(0,-1),(-1,-1),(-1,0),(-1,1),(0,1),(1,1)] 
+        if all(cmap.get((px+s*dx, py+s*dy), None)==c for s,c in enumerate("XMAS"))),
+    sum(1 for (px,py),c0 in cmap.items() if c0=='A' 
+        if all({cmap.get((px+s*dx, py+s*dy), None) for s in [1, -1]}=={'M','S'} for (dx,dy) in [(1,1), (-1,1)])))
+
 # %%
