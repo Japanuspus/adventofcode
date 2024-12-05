@@ -74,11 +74,18 @@ sum(u[len(u)//2] for u in (fix_update(u) for u in bad_updates))
 
 
 # %% [markdown]
-# ## Part 2 using custom comparison key for sort
+# ## Niced up solution
 #
-# This took me a little to find: you need to use [`functools.cmp_to_key`](https://docs.python.org/3/library/functools.html#functools.cmp_to_key)
+# Less verbose `check_update` for part 1. This was the first idea, but somehow I didn't code it: Make a looup for the index of each entry in an update, and then check all applicable rules.
+#
+# Part 2 using custom comparison key for sort.
+# This took me a little to find: you need to use [`functools.cmp_to_key`](https://docs.python.org/3/library/functools.html#functools.cmp_to_key).
 
 # %%
+def check_update(u):
+    umap = {v:i for i, v in enumerate(u)}
+    return not any( (i:=umap.get(a)) and (j:=umap.get(b)) and i>j for a,b in rules)
+    
 def rule_comp(a,b):
     if b in rule_map[a]:
         return 1
@@ -86,7 +93,11 @@ def rule_comp(a,b):
         return -1
     return 0
 
-key = functools.cmp_to_key(rule_comp)
-sum(u[len(u)//2] for u in (sorted(u, key=key) for u in bad_updates))
+print(
+    sum(u[len(u)//2] for u in updates if check_update(u)),
+    sum(u[len(u)//2] for u in (sorted(u, key=functools.cmp_to_key(rule_comp)) for u in updates if not check_update(u)))
+)
+
+# %%
 
 # %%
