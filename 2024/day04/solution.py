@@ -69,6 +69,8 @@ print(sum(1 for (px,py),c0 in cmap.items()
 # ## Compact form:
 
 # %%
+# %%time
+
 with open("input.txt") as f:
     cmap = {(x,y): c for (y, ln) in enumerate(f.read().strip().split("\n")) for (x, c) in enumerate(ln)}
 print(
