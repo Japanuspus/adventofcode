@@ -19,10 +19,9 @@ import numpy as np
 import itertools
 from typing import DefaultDict
 from collections import defaultdict
-
+import functools
 
 # %%
-
 with open("input.txt") as f:
     irules, iupdates = f.read().strip().split("\n\n")
     rules = [(int(a), int(b)) for a,b in (ab.split("|") for ab in irules.split("\n"))]
@@ -34,9 +33,7 @@ for (a,b) in rules:
     rule_map[a].add(b)
 
 
-
 # %%
-
 def process_update(update):
     prev = set()
     for u in update:
@@ -74,3 +71,22 @@ def fix_update(update):
 bad_updates = [u for u in updates if not process_update(u)]
 
 sum(u[len(u)//2] for u in (fix_update(u) for u in bad_updates))
+
+
+# %% [markdown]
+# ## Part 2 using custom comparison key for sort
+#
+# This took me a little to find: you need to use [`functools.cmp_to_key`](https://docs.python.org/3/library/functools.html#functools.cmp_to_key)
+
+# %%
+def rule_comp(a,b):
+    if b in rule_map[a]:
+        return 1
+    elif a in rule_map[b]:
+        return -1
+    return 0
+
+key = functools.cmp_to_key(rule_comp)
+sum(u[len(u)//2] for u in (sorted(u, key=key) for u in bad_updates))
+
+# %%

@@ -51,3 +51,8 @@ print(
     sum(1 for (px,py),c0 in cmap.items() if c0=='A' 
         if all({cmap.get((px+s*dx, py+s*dy), None) for s in [1, -1]}=={'M','S'} for (dx,dy) in [(1,1), (-1,1)])))
 ```
+
+## Day 05 -
+
+It was only after doing the initial solution that I had the calm to read on how to use custom comparators in python: turns out functools have a magical [`functools.cmp_to_key`](https://docs.python.org/3/library/functools.html#functools.cmp_to_key) thay use memoization to build a key-function. This is almost cheating...
+
