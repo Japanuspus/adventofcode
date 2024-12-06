@@ -31,11 +31,10 @@ with open("input.txt") as f:
                 obst.add(p)
             case "^":
                 g0=p
-
+obst = frozenset(obst)
 
 # %%
 dirs = [(0,-1),(1,0),(0,1),(-1,0)]
-
 di=0
 g = tuple(g0)
 visited=[]
@@ -57,6 +56,8 @@ len(set(visited))
 
 
 # %%
+# %%time
+# -> 8.3s 
 def check_loop(bl) -> bool:
     di=0
     g = tuple(g0)
@@ -74,6 +75,27 @@ def check_loop(bl) -> bool:
             else:
                 break
         g=gg
+    return False
+
+len(list(filter(check_loop, mod_candidates)))
+
+
+# %%
+# %%time
+#-> 19.7s
+def check_loop(bl) -> bool:
+    di=0
+    g = tuple(g0)
+    visited=set()
+    while all(pi>=0 and pi<=bi for pi,bi in zip(g, bounds)):
+        if (g, di) in visited:
+            return True
+        visited.add((g, di))
+        g, di = next((gg, ddi) for gg, ddi in (
+            ((g[0]+dirs[ddi][0], g[1]+dirs[ddi][1]), ddi)
+            for ddi in ((di+k)%4 for k in range(4)))
+            if not (gg in obst or gg==bl)
+        )
     return False
 
 len(list(filter(check_loop, mod_candidates)))

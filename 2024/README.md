@@ -52,7 +52,14 @@ print(
         if all({cmap.get((px+s*dx, py+s*dy), None) for s in [1, -1]}=={'M','S'} for (dx,dy) in [(1,1), (-1,1)])))
 ```
 
-## Day 05 -
+## Day 05 - Print Queue
 
-It was only after doing the initial solution that I had the calm to read on how to use custom comparators in python: turns out functools have a magical [`functools.cmp_to_key`](https://docs.python.org/3/library/functools.html#functools.cmp_to_key) thay use memoization to build a key-function. This is almost cheating...
+It was only after doing the initial solution that I had the calm to read on how to use custom comparators in python: turns out functools have a magical [`functools.cmp_to_key`](https://docs.python.org/3/library/functools.html#functools.cmp_to_key) that use memoization to build a key-function. This is almost cheating...
+
+Edit: `cmp_to_key` is not doing any memoization, somehow it triggers the internal comparator functionality. Should really look at some source here.
+
+## Day 06 - Guard Gallivant
+
+Worked in first try with relatively performant code but naive algorithm (8s runtime).
+Looking forward to seeing the clever solutions on this one.
 
