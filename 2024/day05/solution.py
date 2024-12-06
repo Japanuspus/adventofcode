@@ -23,9 +23,7 @@ import functools
 
 # %%
 with open("input.txt") as f:
-    irules, iupdates = f.read().strip().split("\n\n")
-    rules = [(int(a), int(b)) for a,b in (ab.split("|") for ab in irules.split("\n"))]
-    updates = [[int(v) for v in ln.split(",")] for ln in iupdates.split("\n")]
+    rules, updates =[[[int(v) for v in re.split("[,|]",ln)] for ln in bl.split("\n")] for bl in f.read().strip().split("\n\n")]
 
 # %%
 rule_map = defaultdict(set)
@@ -85,7 +83,7 @@ sum(u[len(u)//2] for u in (fix_update(u) for u in bad_updates))
 def check_update(u):
     umap = {v:i for i, v in enumerate(u)}
     return not any( (i:=umap.get(a)) and (j:=umap.get(b)) and i>j for a,b in rules)
-    
+
 def rule_comp(a,b):
     if b in rule_map[a]:
         return 1
@@ -99,5 +97,8 @@ print(
 )
 
 # %%
+# Even shorter for part 2: build the whole comparator table:
+cmp_map = {ab: s for a,b in rules for ab,s in [((a,b),1),((b,a),-1)]}
+sum(u[len(u)//2] for u in (sorted(u, key=functools.cmp_to_key(lambda a,b: cmp_map.get((a,b),0))) for u in updates if not check_update(u)))
 
 # %%
