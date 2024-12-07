@@ -63,3 +63,6 @@ Edit: `cmp_to_key` is not doing any memoization, somehow it triggers the interna
 Worked in first try with relatively performant code but naive algorithm (8s runtime).
 Looking forward to seeing the clever solutions on this one.
 
+## Day 07 - Bridge Repair
+
+Choosing operators to hit a value. Brute force worked fine.

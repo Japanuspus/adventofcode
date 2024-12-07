@@ -101,3 +101,66 @@ def check_loop(bl) -> bool:
 len(list(filter(check_loop, mod_candidates)))
 
 # %%
+# obstacles in all columns and rows
+print(
+    [len(set(p[i] for p in obst)) for i in range(2)], 
+    bounds
+)
+
+
+
+# %% [markdown]
+# * * *
+# Complex numbers for point! 
+# - Real axis is y (downward, lines),
+# - Imaginary axis is x (left, chars),
+# - 
+# (x,y) -> y + I x 
+
+# %%
+obst = set()
+g0=None
+bounds = (0,0)
+with open(["input.txt", "test00.txt"][0]) as f:
+    for p, c in ((y+1j*x, c) for y, ln in enumerate(f.read().strip().split("\n")) for x,c in enumerate(ln)):
+        bounds = tuple(max(bi, pi) for bi,pi in zip(bounds, [p.imag, p.real]))
+        match c:
+            case "#":
+                obst.add(p)
+            case "^":
+                g0=p
+obst = frozenset(obst)
+
+# %%
+d, g = -1, g0
+visited=set()
+while 0<=g.real<=bounds[1] and 0<=g.imag<=bounds[0]:
+    visited.add(g)
+    if (gg := g+d) in obst:
+        d *= -1j
+    else:
+        g=gg
+
+mod_candidates = visited-{g0}
+print(len(visited))
+
+
+# %%
+# %%time -> 3.7s
+def check_loop(bl) -> bool:
+    d, g = -1, g0
+    visited=set()
+    all_obst = frozenset(obst.union({bl}))
+    while 0<=g.real<=bounds[1] and 0<=g.imag<=bounds[0]:
+        if (g,d) in visited:
+            return True
+        visited.add((g,d))
+        if (gg := g+d) in all_obst:
+            d *= -1j
+        else:
+            g=gg
+    return False
+
+len(list(filter(check_loop, mod_candidates)))
+
+# %%
