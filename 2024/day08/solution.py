@@ -36,12 +36,9 @@ def check_bounds(p) -> bool:
 # %%
 antinodes = set()
 for c,ps in ant.items():
-    anti_c = {p for pa in ps for pb in ps 
-              for p in (2*pa-pb, 2*pb-pa) if (not pa==pb) and check_bounds(p)}
-    #print(c, anti_c)
-    antinodes = set.union(antinodes, anti_c)
-
-len(antinodes)
+    antinodes.update(p for pa in ps for pb in ps 
+              for p in (2*pa-pb, 2*pb-pa) if (not pa==pb) and check_bounds(p))
+print(len(antinodes))
 
 # %%
 antinodes = set()
@@ -52,5 +49,6 @@ for c,ps in ant.items():
         dp = pb-pa
         # todo: check gcd == 1...
         antinodes.update(p for p in (pa+i*dp for i in range(-n,n+1)) if check_bounds(p))
+print(len(antinodes))
 
-len(antinodes)
+# %%

@@ -66,3 +66,15 @@ Looking forward to seeing the clever solutions on this one.
 ## Day 07 - Bridge Repair
 
 Choosing operators to hit a value. Brute force worked fine.
+
+## Day 08 - Resonant Collinearity
+
+Finding points where antennas align. 
+
+Used complex numbers to encode point in my new favorite way: Imaginary axis is x, and real axis is line-based y (downward).
+This way, there are no sign flips and the complex plane is not mirrored.
+Naive solution, using sets to track interference locations, worked fine. 
+
+Part 2 considered "all points exactly collinear with a pair of antennas". 
+Two antennas could in principle be positioned with e.g. distance $(2,4)$, so that the collinear points would be spaced with half the distance.
+This was not the case in the example, so I tried the simple solution and it worked...
