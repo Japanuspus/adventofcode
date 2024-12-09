@@ -78,3 +78,26 @@ Naive solution, using sets to track interference locations, worked fine.
 Part 2 considered "all points exactly collinear with a pair of antennas". 
 Two antennas could in principle be positioned with e.g. distance $(2,4)$, so that the collinear points would be spaced with half the distance.
 This was not the case in the example, so I tried the simple solution and it worked...
+
+## Day 09 - Disk Fragmenter
+
+Awesome day (although slow for me).
+Finally got had an excuse to play with [heapq](https://docs.python.org/3/library/heapq.html) which I have never used before.
+In terms of performance, this took my part 2 runtime from 1.14s to 24ms:
+
+```python
+bfree, bocc = blocks(disk_map)
+heap_free = [[] for _ in range(10)]
+for (p,s) in bfree:
+    heappush(heap_free[s], p)
+    
+bocc.reverse()
+cs = 0
+for p, id, s in bocc:
+    if (pfsf:=min((heap_free[sf][0], sf) for sf in range(s,10) if heap_free[sf])) and pfsf[0]<p:
+        pf, sf = pfsf
+        heappop(heap_free[sf])
+        heappush(heap_free[sf-s], pf+s)
+        p=pf
+    cs += id*(s
+```
