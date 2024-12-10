@@ -18,6 +18,7 @@ import re
 import numpy as np
 import itertools
 import math
+import functools
 
 # %%
 with open(["input.txt", "test04.txt"][0]) as f:
@@ -61,3 +62,35 @@ def full_trails_conts(trail: tuple[int]):
             for vn in nbset}
 
 print(sum(len(full_trails_conts((th,))) for th in theads))
+
+
+# %% [markdown]
+# ## After submission
+
+# %%
+# %%time
+# 10ms with lru. same without
+
+@functools.lru_cache()
+def reachable(p,pv):
+    #v must be value of at p
+    if pv==9:
+        return {p}
+    return {v for nb in (p+d for d in dirs if dtopo.get(p+d,0)==pv+1) 
+            for v in reachable(nb, pv+1)}
+
+print(sum(len(reachable(th, 0)) for th in theads))
+
+
+# %%
+# %%time 
+#10ms
+
+def count_the_ways(p, pv) -> int:
+    # pv must be value at p
+    if pv==9:
+        return 1
+    return sum(count_the_ways(nb, pv+1) for nb in (p+d for d in dirs if dtopo.get(p+d,0)==pv+1)) 
+print(sum(count_the_ways(th,0) for th in theads))
+
+# %%
