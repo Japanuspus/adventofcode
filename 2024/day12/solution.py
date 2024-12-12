@@ -16,19 +16,20 @@
 # %%
 import numpy as np
 import collections
+import itertools
 
 # %%
 with open(["input.txt", "test03.txt"][0]) as f:
-    plots = np.array([[c for c in ln] for ln in f.read().strip().split("\n")])
-dplots = {(i+1j*j): c for (i,j), c in np.ndenumerate(plots)}
+    dplots = {int(y)+1j*int(x): c for (y,ln) in enumerate(f.read().strip().split("\n")) for (x,c) in enumerate(ln)}
 
 # %%
-letters = collections.defaultdict(set)
-for p,c in dplots.items():
-    letters[c].add(p)
+letters = {c: set(p for p,c in g) for c, g in itertools.groupby(dplots.items(), key=lambda pc: pc[1])}
 
-regions = []
+# %%
 dirs = [1,1j,-1,-1j]
+
+# %%
+regions = []
 for c, ps in letters.items():
     visited = set()
     while len(visited)<len(ps):
