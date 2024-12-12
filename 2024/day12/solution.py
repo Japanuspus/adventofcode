@@ -14,20 +14,13 @@
 # ---
 
 # %%
-import re
 import numpy as np
-import itertools
-import math
+import collections
 
 # %%
 with open(["input.txt", "test03.txt"][0]) as f:
     plots = np.array([[c for c in ln] for ln in f.read().strip().split("\n")])
-
-# %%
 dplots = {(i+1j*j): c for (i,j), c in np.ndenumerate(plots)}
-
-# %%
-import collections
 
 # %%
 letters = collections.defaultdict(set)
@@ -39,7 +32,6 @@ dirs = [1,1j,-1,-1j]
 for c, ps in letters.items():
     visited = set()
     while len(visited)<len(ps):
-        #print('>', ps, visited)
         work = [next(v for v in ps if v not in visited)]
         region = set()
         while work:
@@ -50,26 +42,16 @@ for c, ps in letters.items():
                 work.extend(pd for pd in (p+d for d in dirs) if pd in ps and pd not in visited)
         regions.append((c, region))
 
-print(regions)
-
-
 # %%
-tot = 0
-dirs = [1,1j,-1,-1j]
-for rc, ps in regions:
-    perim = sum(1 for p in ps for d in dirs if p+d not in ps)
-    # print(rc, len(ps), perim)
-    tot += len(ps)*perim
-print(tot)
-
-# %%
-tot = 0
-dirs = [1,1j,-1,-1j]
+# %%time
+# 21ms
+tot1, tot2 = 0,0
 for rc, ps in regions:
     perim = set((p, d) for p in ps for d in dirs if p+d not in ps)
     ct = sum(1 for p,d in perim if (p+(-1j)*d, d) not in perim)
-    print(rc, len(ps), ct)
-    tot += len(ps)*ct
-print(tot)
+    # print(rc, len(ps), ct)
+    tot1 += len(ps)*len(perim)
+    tot2 += len(ps)*ct
+print(tot1, tot2)
 
 # %%

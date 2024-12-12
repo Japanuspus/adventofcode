@@ -101,3 +101,20 @@ for p, id, s in bocc:
         p=pf
     cs += id*(s
 ```
+
+## Day 10 - Hoof It
+
+Finding walking routes from topo-map. My naive take worked in first try.
+
+## Day 11 - Plutonian Pebbles
+
+The stones that split. Took me forever to find out what to cache for this to complete.
+My intuition had missed the fact that one number could lead to multiple cycles, so that we would end up with many identical pebbles with the same remaining life-time.
+
+Ended up splitting into two functions: One that computes the time before a given pebble bifurcates (and the resulting stones), 
+and one that computes the total number of descendants of a given stone after a given number of blinks. 
+Memcache on this last function was the key.
+
+## Day 12 - Garden Groups
+
+Terrible flood fill - but found a nice trick for the perimeter.
