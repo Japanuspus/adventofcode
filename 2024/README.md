@@ -117,4 +117,19 @@ Memcache on this last function was the key.
 
 ## Day 12 - Garden Groups
 
-Terrible flood fill - but found a nice trick for the perimeter.
+Terrible flood fill - but found a nice trick for the perimeter:
+With points encoded as complex numbers, the `dp` used to check for another plot at `p+dp` is effectively  a directed permimeter normal.
+This means that after finding all `(p, dp)` pairs, it was enough to count those entries for which `p+1j*dp` was not also on the perimeter,
+because this corresponds to a corner in the perimeter:
+
+```python
+tot = 0
+for rc, ps in regions:
+    perim = set((p, d) for p in ps for d in dirs if p+d not in ps)
+    ct = sum(1 for p,d in perim if (p+(-1j)*d, d) not in perim)
+    tot += len(ps)*ct
+```
+
+## Day 13 - Claw Contraption
+
+Happy day for `linalg.solve`: Tried quickly with `np.inverse`, but when it didn't work I switched to `linalg.solve` -- which worked, also for part 2.
