@@ -14,13 +14,8 @@
 # ---
 
 # %%
-import re
-import numpy as np
 import itertools
-import math
 import functools
-import operator
-
 
 # %%
 with open(["input.txt", "test00.txt", "test01.txt"][0]) as f:
@@ -45,14 +40,18 @@ boxes0=boxes
 
 
 # %%
-def show(walls, boxes, robot):
+def show(walls, boxes, robot, stretch=False):
     w = int(max(p.imag for p in walls))
     h = int(max(p.real for p in walls))
 
-    def cval(p):
+    def cval(p, stretch):
         if p in walls:
             return('#')
-        elif p in boxes:
+        elif stretch and (p in boxes):
+            return('[')
+        elif stretch and (p-1j in boxes):
+            return(']')
+        elif not stretch and (p in boxes):
             return('O')
         elif p==robot:
             return('@')
@@ -60,7 +59,8 @@ def show(walls, boxes, robot):
             return('.')
 
     for y in range(h+1):
-        print(''.join(cval(y+1j*x) for x in range(w+1)))
+        print(''.join(cval(y+1j*x, stretch) for x in range(w+1)))
+
 
 
 # %%
@@ -80,7 +80,8 @@ for m in moves:
     #show(walls, boxes, r)
 
 
-sum(100*p.real+p.imag for p in boxes)
+print(int(sum(100*p.real+p.imag for p in boxes)))
+show(walls, boxes, r)
 
 
 # %%
@@ -125,4 +126,9 @@ for m in moves:
     boxes = boxes.union(b+m for b in bs)
     r+=m
 
-int(sum(100*p.real+p.imag for p in boxes))
+print(int(sum(100*p.real+p.imag for p in boxes)))
+show(swalls, boxes, r, stretch=True)
+
+# %%
+
+# %%
