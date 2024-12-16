@@ -41,34 +41,36 @@ east = 1j
 
 
 # %%
-visited = dict()
-
+# %%time
+# 3.1s
 PBase = collections.namedtuple("P", "p h")
 class P(PBase):
     def __lt__(self, other):
         return (self.p.real, self.p.imag) < (other.p.real, other.p.imag)
 
 
-work = [(0, P(start, east)),(1000, P(start, east*1j)), (1000, P(start, east*-1j))]
+work = [
+    (0, P(start, east)),
+    (1000, P(start, east*1j)),
+    (1000, P(start, east*-1j))
+]
 heapq.heapify(work)
 visited = dict()
 while len(work)>0:
     d, (p,h) = heapq.heappop(work)
-    if (p,h) in visited and visited[(p,h)]<d:
+    if (dv:=visited.get((p,h))) is not None and dv<d:
         continue
     visited[(p,h)]=d
-    #print(f"Visiting {(p,h)}")
     if p+h not in walls:
         heapq.heappush(work, (d+1, P(p+h, h)))
         heapq.heappush(work, (d+1001, P(p+h, h*1j)))
         heapq.heappush(work, (d+1001, P(p+h, h*-1j)))
 
-print(min(visited.get((end, h), 1000*len(walls)) for h in [1, 1j, -1, -1j]))
-
+print(min(d for d in (visited.get((end, h)) for h in [1, 1j, -1, -1j]) if d is not None))
 
 # %%
-visited = dict()
-
+# %%time
+# 150ms
 PBase = collections.namedtuple("P", "p h ancestor")
 class P(PBase):
     def __lt__(self, other):
@@ -91,32 +93,24 @@ while len(work)>0:
             continue
         if prev_d<d:
             continue
-    if (p,h) in visited and visited[(p,h)]<d:
-        continue
     visited[(p,h)]=(d, [ancestor])
-    #print(f"Visiting {(p,h)}")
     if p+h not in walls:
         heapq.heappush(work, (d+1, P(p+h, h, (p,h))))
         heapq.heappush(work, (d+1001, P(p+h, h*1j, (p,h))))
         heapq.heappush(work, (d+1001, P(p+h, h*-1j, (p,h))))
 
-# %%
 dmin = min(visited.get((end, h), (1000*len(walls), None))[0] for h in [1, 1j, -1, -1j])
-ps = set([end])
+print(dmin)
 
+# %%
+ps = set([(end, east)])
 work = [a for da in (visited.get((end, h)) for h in [1, 1j, -1, -1j]) if da is not None and da[0]==dmin for a in da[1]]
-
-rev_visited = set()
 while work:
     p, h = work.pop()
-    if (p,h) in rev_visited:
+    if (p,h) in ps:
         continue
-    rev_visited.add((p,h))
-    ps.add(p)
+    ps.add((p,h))
     _, ancestors = visited.get((p,h))
     work.extend(a for a in ancestors if a is not None)
 
-len(ps)
-
-# %%
-visited()
+print(len(set(p for p,h in ps)))
