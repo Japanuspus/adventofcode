@@ -14,86 +14,56 @@
 # ---
 
 # %%
-import re
-import itertools
 import collections
 import heapq
 
 # %%
 [ifile, size, count1] = [["input.txt", 70, 1024], ["test00.txt", 6, 12]][0]
 with open(ifile) as f:
-    bytes = lines = f.read().strip().split("\n")
     # real, y, down -- imag, x, right
+    lines = f.read().strip().split("\n")
     bytes = [(int(y)+1j*int(x)) for x,y in [ln.split(',') for ln in lines]]
-    
-
-# %%
-obstacles = frozenset({v for v in bytes[:count1]})
-
-class P(collections.namedtuple("PBase", "p")):
-    def __lt__(self, other):
-        return False
-
-smap = dict()
-dirs = [1,1j, -1, -1j]
-work = [(0, P(0))]
-heapq.heapify(work)
-while work:
-    s, pp = heapq.heappop(work)
-    p = pp.p
-    if p in smap:
-        continue
-    smap[p]=s
-    for d in dirs:
-        pd = p+d
-        if (0<=pd.real<=size) and (0<=pd.imag<=size) and pd not in obstacles:
-            heapq.heappush(work, (s+1, P(pd)))
-
-#smap
-smap[(size+1j*size)]
-
-
 
 
 # %%
-class P(collections.namedtuple("PBase", "p")):
+class SP(collections.namedtuple("PBase", "s p")):
+    "Noop wrapper because complex-encoded p's cannot be compared as required by heapq"
     def __lt__(self, other):
-        return False
-dirs = [1,1j, -1, -1j]
+        return self.s < other.s
 
-def check_count(count):
+dirs = [1,1j, -1, -1j]
+endpoint = size+1j*size
+
+def distance_map(count):
     obstacles = frozenset({v for v in bytes[:count]})
     smap = dict()
-    work = [(0, P(0))]
+    work = [SP(0, 0)]
     heapq.heapify(work)
     while work:
-        s, pp = heapq.heappop(work)
-        p = pp.p
+        s, p = heapq.heappop(work)
         if p in smap:
             continue
         smap[p]=s
         for d in dirs:
             pd = p+d
             if (0<=pd.real<=size) and (0<=pd.imag<=size) and pd not in obstacles:
-                heapq.heappush(work, (s+1, P(pd)))
-    return size+1j*size in smap   
+                heapq.heappush(work, SP(s+1, pd))
+    return smap
 
 
+# %%
+print(distance_map(count1)[endpoint])
 
 # %%
 lb=0 #known good
 ub=len(bytes) #above known bad
 while ub-lb>1:
     count=(ub+lb)//2
-    v = check_count(count)
-    print(f"{count=} -> {v}")
+    v = endpoint in distance_map(count)
     if v:
         lb=count
     else:
         ub=count
 
-print(lb, ub, bytes[lb])
 b=bytes[lb]
 print(f"{int(b.imag)},{int(b.real)}")
-
-# %%
