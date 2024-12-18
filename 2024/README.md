@@ -133,3 +133,28 @@ for rc, ps in regions:
 ## Day 13 - Claw Contraption
 
 Happy day for `linalg.solve`: Tried quickly with `np.inverse`, but when it didn't work I switched to `linalg.solve` -- which worked, also for part 2.
+
+## Day 14 - Restroom Redoubt
+
+Find positions of swarm of robots moving at constant speed.
+For part 2 you have to find a christmas tree.
+
+## Day 15 - Warehouse Woes
+
+The pre-programmed robot pushing boxes around.
+
+## Day 16 - Reindeer Maze
+
+The one where you have to find all the shortest ways through a maze.
+My initial take on the flood fill worked way too much, but still finished in finite time.
+
+**For followup**: Fix the flood fill for part 1.
+
+## Day 17 - Chronospatial Computer
+
+Run programs on 3-bit computer to find output. 
+
+## Day 18 - RAM Run
+
+The one where you have to find a way through falling obstacles.
+For part two, my mind almost went off towards fancy iterative A*, but you cannot beat binary search...
