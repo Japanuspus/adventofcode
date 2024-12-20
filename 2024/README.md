@@ -158,3 +158,35 @@ Run programs on 3-bit computer to find output.
 
 The one where you have to find a way through falling obstacles.
 For part two, my mind almost went off towards fancy iterative A*, but you cannot beat binary search...
+
+
+## Day 20 - Race Condition
+
+My intuition for (python) performance definitely needs this round of tuning.
+This is what I did for listing the possible cheats in part 2:
+
+```python
+cheats = {a+b: 2 for a in dirs for b in dirs if a+b != 0}
+recent = list(cheats.items())
+for _ in range(18):
+    now = [(p+d, s+1) for p,s in recent for d in dirs if p+d not in cheats]
+    for p,s in now:
+        cheats[p] = s
+    recent = now
+```
+
+I expected this to perform ok-ish: complexity should be slightly more than linear (wrt 20 squared), and the only thing that made me apprehensive was adding to the dict inside a loop.
+Runtime was bad: over 1500 ms for the 800 or so entries.
+
+In contrast, this solution (that I came up with in cleanup) runs in 650us, so more than 1000 times faster, even though the formal complexity should be almost the same.
+```python
+cheatlist = [{0}, {d for d in dirs}]
+for i in range(19):
+    c1 = cheatlist[i]
+    c2 = cheatlist[i+1]
+    new_cheats = {c for c in ((a+b) for a in c2 for b in dirs) if c not in c1 and c not in c2}
+    cheatlist.append(new_cheats)
+cheats = {c: s for s, cs in enumerate(cheatlist) for c in cs if s>1}
+```
+
+This surprised me.
