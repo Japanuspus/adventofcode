@@ -1,22 +1,13 @@
-# ---
-# jupyter:
-#   jupytext:
-#     formats: py:percent
-#     text_representation:
-#       extension: .py
-#       format_name: percent
-#       format_version: '1.3'
-#       jupytext_version: 1.16.1
-#   kernelspec:
-#     display_name: Python 3 (ipykernel)
-#     language: python
-#     name: python3
-# ---
+
 
 # %%
 import re
 import numpy as np
 import itertools
+import math
+import functools
+import operator
+import collections
 
 # %%
 # ! aocprep
@@ -24,4 +15,5 @@ import itertools
 # %%
 with open("input.txt") as f:
     lines = f.read().strip().split("\n")
-
+    # real, y, down -- imag, x, right
+    pc = ((y+1j*x,c) for y,ln in enumerate(lines) for x, c in enumerate(ln))
