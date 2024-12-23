@@ -10,3 +10,4 @@ dependencies:
   - jupytext
   - mypy
   - pandas
+  - networkx
